@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -19,9 +20,11 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun App() {
     MaterialTheme {
         var text by remember { mutableStateOf("") }
+        var progress by remember { mutableStateOf(0) }
         var itemList by remember { mutableStateOf(setOf<String>()) }
         var result by remember { mutableStateOf("") }
-        val coroutineScope = rememberCoroutineScope() // Создаем корутиновый scope для асинхронных операций
+        val coroutineScope = rememberCoroutineScope()
+        var testCaseO by remember { mutableStateOf(TestCase(listOf(), RunType.COUNT, 0, 0)) }
 
         Column(modifier = Modifier.fillMaxWidth().padding(Dp(20.0F))) {
             OutlinedTextField(
@@ -38,14 +41,27 @@ fun App() {
             }
             Button(onClick = {
                 coroutineScope.launch {
-                    // Используем withContext(Dispatchers.IO), чтобы выполнить операцию в фоновом потоке
-                    result = withContext(Dispatchers.IO) {
-                        runDurationTest(itemList.toList(), 1) // Выполняем долгую операцию в фоновом потоке
+                    launch {
+                        testCaseO = TestCase(itemList.toList(), RunType.COUNT, 100, 0)
+                        result = withContext(Dispatchers.IO) {
+                            testCaseO.runTestCase()
+                        }
+                    }
+                    launch {
+                        progress = 0
+                        delay(2000)
+                        while (testCaseO.testCaseState.status == StatusCode.RUNNING || testCaseO.testCaseState.status == StatusCode.CREATED) {
+                            delay(1000)
+                            progress = testCaseO.getProgress()
+                        }
                     }
                 }
             }) {
                 Text("Launch")
             }
+//            LaunchedEffect(Unit) {}
+
+            Text(text = "Progress: ${progress}%")
             Text(result)
 
             for (item in itemList) {
