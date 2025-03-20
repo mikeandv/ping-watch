@@ -26,6 +26,7 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ok.http)
+            implementation(libs.decompose)
         }
     }
 }

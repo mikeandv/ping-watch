@@ -4,25 +4,47 @@ class TestCase(
     val urls: List<String>,
     val runType: RunType,
     val countValue: Int,
-    val durationValue: Int,
+    val durationValue: Long?,
 ) {
     val testCaseState: TestCaseState = TestCaseState()
-    lateinit var testCaseResult: TestCaseResult
+    lateinit var testCaseResult: List<TestCaseResult>
 
-    suspend fun runTestCase(): String {
-        this.testCaseState.status = StatusCode.RUNNING
-        testCaseResult = runR(this)
-        this.testCaseState.status = StatusCode.FINISHED
-        return testCaseResult.toString()
+    suspend fun runTestCase() {
+        when(runType) {
+            RunType.DURATION -> {
+                testCaseState.startDurationTestCase()
+//                println(this)
+                testCaseResult = runR(this)
+                testCaseState.finishDurationTestCase()
+            }
+            RunType.COUNT -> {
+                testCaseState.startCountTestCase()
+//                println(this)
+                testCaseResult = runR(this)
+                testCaseState.finishCountTestCase()
+            }
+        }
+
+//        return testCaseResult
     }
 
     fun getProgress(): Int {
-        return when(runType) {
-            RunType.DURATION -> 0
-            RunType.COUNT -> testCaseState.getDurationProgress(countValue * urls.size)
+        return if (testCaseState.getStatus() == StatusCode.CREATED) {
+            0
+        } else {
+            when(runType) {
+                RunType.DURATION -> testCaseState.getDurationProgress(durationValue?: 0)
+                RunType.COUNT -> testCaseState.getCountProgress(countValue * urls.size)
+            }
         }
     }
     fun getState(): StatusCode {
-        return testCaseState.status
+        return testCaseState.getStatus()
     }
+
+    override fun toString(): String {
+        return "TestCase(urls=$urls, runType=$runType, countValue=$countValue, durationValue=$durationValue, testCaseState=$testCaseState)"
+    }
+
+
 }

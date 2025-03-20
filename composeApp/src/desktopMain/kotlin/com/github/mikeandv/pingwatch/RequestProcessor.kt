@@ -22,23 +22,42 @@ fun measureResponseTime(url: String): ResponseData {
 }
 
 
-suspend fun runByCount(count: Int, urls: List<String>, executionCounter: AtomicInteger): List<ResponseData> = coroutineScope {
+suspend fun runByCount(count: Int, urls: List<String>, executionCounter: AtomicInteger): List<ResponseData> =
+    withContext(Dispatchers.IO) {
+        val resultTemp = ConcurrentLinkedQueue<ResponseData>()
 
-    val resultTemp = ConcurrentLinkedQueue<ResponseData>()
-    urls.map { url ->
-        async {
-            resultTemp.addAll(List(count) {
-                executionCounter.incrementAndGet()
-                measureResponseTime(url)
-            })
+        val jobs = urls.map { url ->
+            async {
+                repeat(count) {
+                    val currentCount = executionCounter.incrementAndGet() // Последовательный инкремент
+                    println("URL: $url, executionCounter: $currentCount") // 👀 Проверка
+
+                    val responseData = measureResponseTime(url)
+                    resultTemp.add(responseData)
+                }
+            }
         }
-    }.awaitAll()
-    return@coroutineScope resultTemp.toList()
-}
 
-suspend fun runByDuration(amountOfTime: Int, urls: List<String>): List<ResponseData> =
+        jobs.awaitAll()
+        return@withContext resultTemp.toList()
+//    val resultTemp = ConcurrentLinkedQueue<ResponseData>()
+//    urls.map { url ->
+//        async {
+//            resultTemp.addAll(List(count) {
+//                val currentCount = executionCounter.incrementAndGet()
+//                println("URL: $url, executionCounter: $currentCount")
+//                executionCounter.incrementAndGet()
+////                println(url)
+//                measureResponseTime(url)
+//            })
+//        }
+//    }.awaitAll()
+//    return@coroutineScope resultTemp.toList()
+    }
+
+suspend fun runByDuration(durationMillis: Long, urls: List<String>): List<ResponseData> =
     coroutineScope {
-        val durationMillis = amountOfTime * 60 * 1000L
+//        val durationMillis = amountOfTime * 60 * 1000L
         val startTime = System.currentTimeMillis()
 
         val resultTemp = ConcurrentLinkedQueue<ResponseData>()
@@ -47,7 +66,7 @@ suspend fun runByDuration(amountOfTime: Int, urls: List<String>): List<ResponseD
             launch(Dispatchers.IO) {
                 while (System.currentTimeMillis() - startTime < durationMillis) {
                     val responseData = measureResponseTime(url)
-                    println(url) // Для отладки
+//                    println(url) // Для отладки
 
                     resultTemp.add(responseData)
                 }
@@ -60,15 +79,14 @@ suspend fun runByDuration(amountOfTime: Int, urls: List<String>): List<ResponseD
         return@coroutineScope resultTemp.toList()
     }
 
-suspend fun runR(testCase: TestCase): TestCaseResult {
-
+suspend fun runR(testCase: TestCase): List<TestCaseResult> {
 
     val result = when (testCase.runType) {
-        RunType.DURATION -> runByDuration(testCase.durationValue, testCase.urls)
-        RunType.COUNT -> runByCount(testCase.countValue, testCase.urls, testCase.testCaseState.executionCounter)
+        RunType.DURATION -> runByDuration(testCase.durationValue ?: 0, testCase.urls)
+        RunType.COUNT -> runByCount(testCase.countValue, testCase.urls, testCase.testCaseState.getExecutionCounter())
     }
 
-    return TestCaseResult(result)
+    return TestCaseResult.create(result)
 }
 
 data class ResponseData(val url: String, val statusCode: Int, val duration: Long)
