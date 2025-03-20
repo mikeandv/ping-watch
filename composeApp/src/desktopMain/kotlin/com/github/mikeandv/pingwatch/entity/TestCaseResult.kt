@@ -1,4 +1,6 @@
-package com.github.mikeandv.pingwatch
+package com.github.mikeandv.pingwatch.entity
+
+import com.github.mikeandv.pingwatch.ResponseData
 
 class TestCaseResult private constructor(
     val url: String,

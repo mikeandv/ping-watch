@@ -1,28 +1,25 @@
-package com.github.mikeandv.pingwatch
+package com.github.mikeandv.pingwatch.entity
 
+import com.github.mikeandv.pingwatch.StatusCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 class TestCaseState() {
     private val _status = MutableStateFlow(StatusCode.CREATED)
     val status: StateFlow<StatusCode> get() = _status.asStateFlow()
 
-//    private var status: StatusCode = StatusCode.CREATED
-
-    //    var progressInPercent: Double = 0.0
-    private val executionCounter = AtomicInteger()
+    private val executionCounter = AtomicLong()
     private val startTime = AtomicLong()
 
-    fun getCountProgress(count: Int): Int {
-        return (100 * executionCounter.get()) / count
+    fun getCountProgress(count: Long): Long {
+        return ((100 * executionCounter.get()) / count)
     }
 
-    fun getDurationProgress(durationMillis: Long): Int {
+    fun getDurationProgress(durationMillis: Long): Long {
         val elapsedTime = System.currentTimeMillis() - startTime.get()
-        return (100 * (elapsedTime.toFloat() / durationMillis).coerceIn(0f, 1f)).toInt()
+        return (100 * (elapsedTime.toFloat() / durationMillis).coerceIn(0f, 1f)).toLong()
     }
 
     fun startCountTestCase() {
@@ -43,10 +40,10 @@ class TestCaseState() {
     }
 
     fun getStatus(): StatusCode {
-        return _status.value
+        return status.value
     }
 
-    fun getExecutionCounter(): AtomicInteger {
+    fun getExecutionCounter(): AtomicLong {
         return executionCounter
     }
 }

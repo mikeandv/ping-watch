@@ -1,15 +1,39 @@
-package com.github.mikeandv.pingwatch
+package com.github.mikeandv.pingwatch.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.github.mikeandv.pingwatch.entity.TestCaseResult
+import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
+
+@Composable
+fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
+
+    val testCase by viewModel.testCase.collectAsState()
+
+    MaterialTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+        ) {
+            Button(onClick = onNavigateBack) {
+                Text("Back to Home")
+            }
+            simpleTable(testCase.testCaseResult)
+        }
+    }
+}
 
 
 @Composable
@@ -60,5 +84,3 @@ fun simpleTable(resultData: List<TestCaseResult>) {
         }
     }
 }
-
-
