@@ -2,7 +2,6 @@ package com.github.mikeandv.pingwatch.ui.screens
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
@@ -140,7 +139,7 @@ fun simpleTable(resultData: List<TestCaseResult>) {
             tableCell("${row.errorRequestCount}", modifier = Modifier.weight(1f))
             tableCell("${row.min}", modifier = Modifier.weight(1f))
             tableCell("${row.max}", modifier = Modifier.weight(1f))
-            tableCell("${"%.2f".format(row.avg)}", modifier = Modifier.weight(1f))
+            tableCell("%.2f".format(row.avg), modifier = Modifier.weight(1f))
             tableCell("${row.median}", modifier = Modifier.weight(1f))
             tableCell("${row.p95}", modifier = Modifier.weight(1f))
             tableCell("${row.p99}", modifier = Modifier.weight(1f))

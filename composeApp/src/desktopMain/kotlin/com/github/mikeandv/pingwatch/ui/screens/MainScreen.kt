@@ -14,8 +14,6 @@ import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
-import java.awt.FileDialog
-import java.awt.Frame
 
 @Composable
 fun MainScreen(
@@ -352,7 +350,7 @@ fun DurationOrCountSelector(
     ) {
         if (durationErrorMessage != null) {
             Text(
-                text = durationErrorMessage!!,
+                text = durationErrorMessage,
                 color = MaterialTheme.colors.error,
                 style = MaterialTheme.typography.body2,
                 modifier = Modifier.padding(start = 8.dp, top = 4.dp)
