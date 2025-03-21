@@ -6,6 +6,9 @@ import com.github.mikeandv.pingwatch.entity.TestCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.awt.FileDialog
+import java.awt.Frame
+import java.io.IOException
 
 fun handleUrlChange(
     input: String,
@@ -17,6 +20,27 @@ fun handleUrlChange(
     updateErrorMessage(
         if (input.matches(urlPattern) || input.isEmpty()) null else "URL must start with http:// or https://"
     )
+}
+
+fun handleImport(
+    updateUrlList: (Set<String>) -> Unit,
+    updateShowDialog: (Boolean) -> Unit,
+    updateDialogErrorMessage: (String?) -> Unit
+) {
+    val dialog = FileDialog(Frame(), "Select File", FileDialog.LOAD)
+    dialog.isVisible = true
+    val selectedFile = dialog.files.firstOrNull()
+
+    if (selectedFile != null) {
+        try {
+            val urls = selectedFile.readLines() // Read the file as lines
+            // Add each URL to the list
+            updateUrlList(urls.toSet())
+        } catch (e: IOException) {
+            updateDialogErrorMessage("Error reading file: ${e.message}")
+            updateShowDialog(true)
+        }
+    }
 }
 
 fun handleAddUrl(
@@ -78,6 +102,7 @@ fun handleTestCountChange(
             updateRequestCount(null)
             null
         }
+
         input.toLongOrNull() != null -> {
             updateCountInput(input)
             updateRequestCount(input.toLong())

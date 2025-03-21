@@ -2,7 +2,7 @@ package com.github.mikeandv.pingwatch.entity
 
 import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.StatusCode
-import com.github.mikeandv.pingwatch.runR
+import com.github.mikeandv.pingwatch.processor.runR
 
 class TestCase(
     val urls: List<String>,

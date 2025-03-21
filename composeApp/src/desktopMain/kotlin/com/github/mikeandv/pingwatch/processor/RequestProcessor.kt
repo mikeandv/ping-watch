@@ -1,5 +1,6 @@
-package com.github.mikeandv.pingwatch
+package com.github.mikeandv.pingwatch.processor
 
+import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseResult
 import kotlinx.coroutines.*
@@ -13,12 +14,19 @@ val client = OkHttpClient()
 
 fun measureResponseTime(url: String): ResponseData {
     var statusCode: Int
+    var requestDuration: Long
 
-    val requestDuration = measureTimeMillis {
-        val request = Request.Builder().url(url).build()
-        client.newCall(request).execute().use { response ->
-            statusCode = response.code
+    try {
+        requestDuration = measureTimeMillis {
+            val request = Request.Builder().url(url).build()
+            client.newCall(request).execute().use { response ->
+                statusCode = response.code
+            }
         }
+    } catch (e: Exception) {
+//        println("Error making request to $url: ${e.message}")
+        statusCode = -1
+        requestDuration = -1L
     }
     return ResponseData(url, statusCode, requestDuration)
 }

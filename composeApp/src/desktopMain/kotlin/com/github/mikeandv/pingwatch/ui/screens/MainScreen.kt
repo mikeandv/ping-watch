@@ -1,7 +1,7 @@
 package com.github.mikeandv.pingwatch.ui.screens
 
 
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -14,6 +14,8 @@ import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
+import java.awt.FileDialog
+import java.awt.Frame
 
 @Composable
 fun MainScreen(
@@ -34,6 +36,7 @@ fun MainScreen(
     var countInput by remember { mutableStateOf("") }
     var isDuration by remember { mutableStateOf(true) }
     var timeInput by remember { mutableStateOf("") }
+    val scrollState = rememberScrollState()
 
     val coroutineScope = rememberCoroutineScope()
     val urlPattern = Regex("^https?://.*")
@@ -49,7 +52,6 @@ fun MainScreen(
             Column(
                 modifier = Modifier
                     .weight(4f)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
                     .padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
@@ -73,6 +75,13 @@ fun MainScreen(
                             currentUrls = urlList,
                             resetUrl = { url = "" },
                             updateErrorMessage = viewModel::updateUrlErrorMessage
+                        )
+                    },
+                    onImport = {
+                        handleImport(
+                            updateUrlList = viewModel::updateUrlList,
+                            updateDialogErrorMessage = viewModel::updateDialogErrorMessage,
+                            updateShowDialog = viewModel::updateShowDialog
                         )
                     }
                 )
@@ -144,27 +153,38 @@ fun MainScreen(
                     }
                 }
             }
-            // Progress column
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
-                    .padding(10.dp),
-            ) {
-                ProgressColumn(progress = progress)
-            }
+
             // URL list column
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(3f)
                     .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
                     .padding(10.dp)
             ) {
-                UrlListColumn(urlList = urlList,
-                    onRemoveUrl = { urlToRemove ->
-                        viewModel.updateUrlList(urlList.minus(urlToRemove))
-                    })
+                Column(
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .verticalScroll(scrollState)
+                ) {
+                    UrlListColumn(urlList = urlList,
+                        onRemoveUrl = { urlToRemove ->
+                            viewModel.updateUrlList(urlList.minus(urlToRemove))
+                        })
+                }
+                VerticalScrollbar(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    adapter = rememberScrollbarAdapter(scrollState)
+                )
+
+            }
+            // Progress column
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(10.dp),
+            ) {
+                ProgressColumn(progress = progress)
             }
         }
 
@@ -228,7 +248,8 @@ fun UrlInput(
     url: String,
     onUrlChange: (String) -> Unit,
     urlErrorMessage: String?,
-    onAddUrl: () -> Unit
+    onAddUrl: () -> Unit,
+    onImport: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -273,9 +294,7 @@ fun UrlInput(
         Spacer(modifier = Modifier.width(16.dp))
 
         Button(
-            onClick = {
-                ""
-            },
+            onClick = onImport
         ) {
             Text("Import..")
         }

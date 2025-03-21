@@ -26,7 +26,6 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ok.http)
-            implementation(libs.decompose)
         }
     }
 }
@@ -37,8 +36,8 @@ compose.desktop {
         mainClass = "com.github.mikeandv.pingwatch.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.github.mikeandv.pingwatch"
+            targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.Deb)
+            packageName = "PingWatch"
             packageVersion = "1.0.0"
         }
     }
