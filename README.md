@@ -2,9 +2,9 @@
 ## Description
 
 This application is build for testing URL response time, You specify Url you need to check and provide parameters for testing , such as
-Duration (Amount of time for run test) or Count(Amount of request per url to be send).
+Duration (Amount of time for run test) or Count(Amount of request per url to be sent).
 
-Also you need to add url manually item by item or you could import uls from text file (each url must be in new line)
+Also, you need to add url manually item by item, or you could import uls from text file (each url must be in new line)
 
 Then you run test by clicking Launch button and wait until test completed. You could see progress in the bottom if the page.
 
