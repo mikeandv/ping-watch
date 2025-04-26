@@ -56,8 +56,16 @@ class TestCaseResult private constructor(
         }
 
         private fun calculatePercentile(sortedList: List<Long>?, percentile: Double): Long {
-            val index = (percentile / 100.0 * (sortedList?.size ?: 0)).toInt().coerceAtMost((sortedList?.size ?: 0) - 1)
-            return sortedList?.get(index) ?: 0
+            if (sortedList.isNullOrEmpty()) {
+                println("Sorted list cannot be null or empty!")
+                return 0L
+            }
+            if (percentile !in 0.0..100.0) {
+                println("Percentile must be number between 0 and 100")
+                return 0L
+            }
+            val index = (percentile / 100.0 * sortedList.size).toInt().coerceAtMost(sortedList.size - 1)
+            return sortedList[index]
         }
     }
 
