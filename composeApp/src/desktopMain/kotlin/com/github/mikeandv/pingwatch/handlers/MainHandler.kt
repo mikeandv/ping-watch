@@ -6,9 +6,9 @@ import com.github.mikeandv.pingwatch.entity.TestCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.awt.FileDialog
-import java.awt.Frame
 import java.io.IOException
+import javax.swing.JFileChooser
+import javax.swing.filechooser.FileNameExtensionFilter
 
 fun handleUrlChange(
     input: String,
@@ -25,21 +25,46 @@ fun handleUrlChange(
 fun handleImport(
     updateUrlList: (Set<String>) -> Unit,
     updateShowDialog: (Boolean) -> Unit,
-    updateDialogErrorMessage: (String?) -> Unit
+    updateDialogErrorMessage: (String?) -> Unit,
+    urlPattern: Regex
 ) {
-    val dialog = FileDialog(Frame(), "Select File", FileDialog.LOAD)
-    dialog.isVisible = true
-    val selectedFile = dialog.files.firstOrNull()
+    val maxFileSizeBytes = 5 * 1024 * 1024 // file size 5mb limit
+    val maxLinesLimit = 20  // limit to lines in file
+    val fileChooser = JFileChooser()
+    val filter = FileNameExtensionFilter("Text File (*.txt)", "txt")
+    fileChooser.fileFilter = filter
 
-    if (selectedFile != null) {
-        try {
-            val urls = selectedFile.readLines() // Read the file as lines
-            // Add each URL to the list
-            updateUrlList(urls.toSet())
-        } catch (e: IOException) {
-            updateDialogErrorMessage("Error reading file: ${e.message}")
+    val result = fileChooser.showOpenDialog(null)
+    if (result == JFileChooser.APPROVE_OPTION) {
+        val file = fileChooser.selectedFile
+
+        if (file.length() <= maxFileSizeBytes) {
+            try {
+                val urls = file.readLines() // Read the file as lines
+                if (urls.size > maxLinesLimit) {
+                    updateDialogErrorMessage("Reach lines limit in file.\nLimit: $maxLinesLimit.")
+                    updateShowDialog(true)
+                } else if (urls.isEmpty()) {
+                    updateDialogErrorMessage("There is no lines in file")
+                    updateShowDialog(true)
+                } else if (urls.any { !it.matches(urlPattern) }) {
+                    updateDialogErrorMessage("Some of urls have incorrect format")
+                    updateShowDialog(true)
+                } else {
+                    // Add each URL to the list
+                    updateUrlList(urls.toSet())
+                }
+            } catch (e: IOException) {
+                updateDialogErrorMessage("Error reading file: ${e.message}")
+                updateShowDialog(true)
+            }
+        } else {
+            updateDialogErrorMessage("File size exceeds the limit of ${maxFileSizeBytes / (1024 * 1024)} MB.\nPlease select another file.")
             updateShowDialog(true)
         }
+    } else {
+        updateDialogErrorMessage("No file selected.")
+        updateShowDialog(true)
     }
 }
 

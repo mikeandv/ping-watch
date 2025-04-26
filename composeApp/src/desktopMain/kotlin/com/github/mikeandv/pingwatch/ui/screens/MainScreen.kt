@@ -79,7 +79,8 @@ fun MainScreen(
                         handleImport(
                             updateUrlList = viewModel::updateUrlList,
                             updateDialogErrorMessage = viewModel::updateDialogErrorMessage,
-                            updateShowDialog = viewModel::updateShowDialog
+                            updateShowDialog = viewModel::updateShowDialog,
+                            urlPattern = urlPattern
                         )
                     }
                 )
