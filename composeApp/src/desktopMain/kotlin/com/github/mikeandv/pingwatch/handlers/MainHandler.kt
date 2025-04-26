@@ -154,11 +154,23 @@ fun handleLaunchTest(
     updateShowDialog: (Boolean) -> Unit,
     updateDialogMessage: (String) -> Unit
 ) {
-    if (urlList.isEmpty() || !durationErrorMessage.isNullOrEmpty() ||
-        (isDuration && timeInMillis == null) ||
-        (!isDuration && requestCount == null)
-    ) {
-        updateDialogMessage("Incorrect values for running the test!\n")
+    val missingFields = mutableListOf<String>()
+    if (urlList.isEmpty()) {
+        missingFields.add("URLs list is empty!")
+    }
+    if (!durationErrorMessage.isNullOrEmpty()) {
+        missingFields.add("Duration format is incorrect!")
+    }
+    if (isDuration && timeInMillis == null) {
+        missingFields.add("Time duration doesn't set!")
+    }
+    if (!isDuration && requestCount == null) {
+        missingFields.add("Requests count doesn't set!")
+    }
+
+    if (missingFields.isNotEmpty()) {
+        val errorMessage = "Incorrect values for running the test:\n" + missingFields.joinToString("\n")
+        updateDialogMessage(errorMessage)
         updateShowDialog(true)
     } else {
         val tmpTestCase = TestCase(
