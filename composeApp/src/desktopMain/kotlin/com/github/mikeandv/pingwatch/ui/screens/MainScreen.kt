@@ -171,6 +171,8 @@ fun MainScreen(
                     UrlListColumn(
                         urlList = urlList,
                         isDuration = isDuration,
+                        timeInput = timeInput,
+                        countInput = countInput,
                         updateIndividualCount = viewModel::updateRequestCountByKey,
                         updateIndividualTime = viewModel::updateTimeInMillisByKey,
                         updateIndividualUnformattedTime = viewModel::updateUnformattedDurationValueByKey,
@@ -231,6 +233,8 @@ fun ProgressColumn(progress: Long) {
 fun UrlListColumn(
     urlList: Map<String, TestCaseParams>,
     isDuration: Boolean,
+    timeInput: String,
+    countInput: String,
     updateIndividualCount: (Long, String) -> Unit,
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
@@ -256,9 +260,24 @@ fun UrlListColumn(
             Checkbox(
                 modifier = Modifier.weight(0.1f),
                 checked = isChecked,
-                onCheckedChange = {
-                    isChecked = it
-                    updateIndividualIsEdit(it, key)
+                onCheckedChange = { item ->
+                    isChecked = item
+                    updateIndividualIsEdit(item, key)
+                    if (isDuration) {
+                        handleIndividualTimeInputChange(
+                            timeInput,
+                            key,
+                            updateTime = updateIndividualTime,
+                            updateUnformattedTime = updateIndividualUnformattedTime,
+                            updateErrorMessage = { individualDurationErrorMessage = it })
+                    } else {
+                        handleIndividualTestCountChange(
+                            input = countInput,
+                            key = key,
+                            updateCount = updateIndividualCount,
+                            updateErrorMessage = { individualDurationErrorMessage = it }
+                        )
+                    }
                 })
             if (isChecked) {
                 if (isDuration) {
