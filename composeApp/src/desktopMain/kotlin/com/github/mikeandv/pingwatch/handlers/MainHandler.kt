@@ -95,7 +95,16 @@ fun handleTimeInputChange(
         updateTimeInput("")
         updateTimeInMillis(null)
         updateErrorMessage(null)
-    } else if (input.matches(Regex("^\\d{0,2}:?\\d{0,2}$"))) { // Check MM:SS format
+    } else if (
+        (input.length == 1 && input.matches(Regex("^([0-9])$"))) ||
+        (input.length == 2 && input.matches(Regex("^([0-9][0-9])$"))) ||
+        (input.length == 3 && input.matches(Regex("^([0-9][0-9]):$"))) ||
+        (input.length == 4 && input.matches(Regex("^([0-9][0-9]):([0-9])$")))
+    ) {
+        updateTimeInput(input)
+        updateTimeInMillis(null)
+        updateErrorMessage("Invalid format (MM:SS)")
+    } else if (input.length == 5 && input.matches(Regex("^([0-9][0-9]):([0-9][0-9])$"))) {
         updateTimeInput(input)
         updateErrorMessage(null)
 
