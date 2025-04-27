@@ -3,6 +3,7 @@ package com.github.mikeandv.pingwatch.handlers
 import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.entity.TestCase
+import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -18,12 +19,12 @@ fun handleUrlChange(
 ) {
     updateUrl(input)
     updateErrorMessage(
-        if (input.matches(urlPattern) || input.isEmpty()) null else "URL must start with http:// or https://"
+        if (input.matches(urlPattern) || input.isEmpty()) null else "URL must follow formats like `https://example.com`."
     )
 }
 
 fun handleImport(
-    updateUrlList: (Set<String>) -> Unit,
+    updateUrlList: (Map<String, TestCaseParams>) -> Unit,
     updateShowDialog: (Boolean) -> Unit,
     updateDialogErrorMessage: (String?) -> Unit,
     urlPattern: Regex
@@ -52,7 +53,7 @@ fun handleImport(
                     updateShowDialog(true)
                 } else {
                     // Add each URL to the list
-                    updateUrlList(urls.toSet())
+                    updateUrlList(urls.associateWith { TestCaseParams(false, 0L, 0L, "") })
                 }
             } catch (e: IOException) {
                 updateDialogErrorMessage("Error reading file: ${e.message}")
@@ -71,13 +72,20 @@ fun handleImport(
 fun handleAddUrl(
     url: String,
     urlPattern: Regex,
-    updateUrlList: (Set<String>) -> Unit,
-    currentUrls: Set<String>,
+    updateUrlList: (Map<String, TestCaseParams>) -> Unit,
+    currentUrls: Map<String, TestCaseParams>,
     resetUrl: () -> Unit,
     updateErrorMessage: (String?) -> Unit
 ) {
     if (url.matches(urlPattern)) {
-        updateUrlList(currentUrls + url)
+        updateUrlList(
+            currentUrls + (url to TestCaseParams(
+                false,
+                0L,
+                0L,
+                ""
+            ))
+        ) // TODO check if it is true that we add with 0L
         resetUrl()
         updateErrorMessage(null)
     } else {
@@ -85,15 +93,56 @@ fun handleAddUrl(
     }
 }
 
+fun handleIndividualTimeInputChange(
+    input: String,
+    key: String,
+    updateTime: (Long, String) -> Unit,
+    updateUnformattedTime: (String, String) -> Unit,
+    updateErrorMessage: (String?) -> Unit
+) {
+    if (input.isEmpty()) {
+        updateTime(0L, key)
+        updateUnformattedTime("", key)
+        updateErrorMessage(null)
+    } else if (
+        (input.length == 1 && input.matches(Regex("^([0-9])$"))) ||
+        (input.length == 2 && input.matches(Regex("^([0-9][0-9])$"))) ||
+        (input.length == 3 && input.matches(Regex("^([0-9][0-9]):$"))) ||
+        (input.length == 4 && input.matches(Regex("^([0-9][0-9]):([0-9])$")))
+    ) {
+        updateTime(0L, key)
+        updateUnformattedTime(input, key)
+        updateErrorMessage("Invalid format (MM:SS)")
+    } else if (input.length == 5 && input.matches(Regex("^([0-9][0-9]):([0-9][0-9])$"))) {
+        updateUnformattedTime(input, key)
+        updateErrorMessage(null)
+
+        val parts = input.split(":")
+        if (parts.size == 2) {
+            val minutes = parts[0].toIntOrNull() ?: 0
+            val seconds = parts[1].toIntOrNull() ?: 0
+
+            if (seconds in 0..59) {
+                updateTime((minutes * 60 + seconds) * 1000L, key)
+            } else {
+                updateErrorMessage("Seconds must be in the range 00-59")
+            }
+        }
+    } else {
+        updateErrorMessage("Invalid format (MM:SS)")
+    }
+
+}
+
 fun handleTimeInputChange(
     input: String,
     updateTimeInput: (String) -> Unit,
     updateErrorMessage: (String?) -> Unit,
-    updateTimeInMillis: (Long?) -> Unit
+    updateTimeInMillis: (Long) -> Unit
 ) {
     if (input.isEmpty()) {
         updateTimeInput("")
-        updateTimeInMillis(null)
+        updateTimeInMillis(0L)
         updateErrorMessage(null)
     } else if (
         (input.length == 1 && input.matches(Regex("^([0-9])$"))) ||
@@ -102,7 +151,7 @@ fun handleTimeInputChange(
         (input.length == 4 && input.matches(Regex("^([0-9][0-9]):([0-9])$")))
     ) {
         updateTimeInput(input)
-        updateTimeInMillis(null)
+        updateTimeInMillis(0L)
         updateErrorMessage("Invalid format (MM:SS)")
     } else if (input.length == 5 && input.matches(Regex("^([0-9][0-9]):([0-9][0-9])$"))) {
         updateTimeInput(input)
@@ -124,16 +173,40 @@ fun handleTimeInputChange(
     }
 }
 
+fun handleIndividualTestCountChange(
+    input: String,
+    key: String,
+    updateCount: (Long, String) -> Unit,
+    updateErrorMessage: (String?) -> Unit
+) {
+    val errorMessage = when {
+        input.isEmpty() -> {
+            updateCount(0L, key)
+            null
+        }
+
+        input.toLongOrNull() != null -> {
+            updateCount(input.toLong(), key)
+            null
+        }
+
+        else -> {
+            "Enter the number"
+        }
+    }
+    updateErrorMessage(errorMessage)
+}
+
 fun handleTestCountChange(
     input: String,
     updateCountInput: (String) -> Unit,
-    updateRequestCount: (Long?) -> Unit,
+    updateRequestCount: (Long) -> Unit,
     updateErrorMessage: (String?) -> Unit
 ) {
     val errorMessage = when {
         input.isEmpty() -> {
             updateCountInput("")
-            updateRequestCount(null)
+            updateRequestCount(0L)
             null
         }
 
@@ -154,9 +227,7 @@ fun handleTestCountChange(
 fun handleLaunchTest(
     isDuration: Boolean,
     cancelFlag: () -> Boolean,
-    urlList: Set<String>,
-    requestCount: Long?,
-    timeInMillis: Long?,
+    urlList: Map<String, TestCaseParams>,
     durationErrorMessage: String?,
     coroutineScope: CoroutineScope,
     onUpdateTestCase: (TestCase) -> Unit,
@@ -171,11 +242,19 @@ fun handleLaunchTest(
     if (!durationErrorMessage.isNullOrEmpty()) {
         missingFields.add("Duration format is incorrect!")
     }
-    if (isDuration && timeInMillis == null) {
-        missingFields.add("Time duration doesn't set!")
+    if (isDuration && urlList.values.any { it.durationValue == 0L }) {
+        missingFields.add(
+            "Time duration doesn't set!\n" +
+                    urlList.filter { it.value.durationValue == 0L }
+                        .keys
+                        .joinToString(", "))
     }
-    if (!isDuration && requestCount == null) {
-        missingFields.add("Requests count doesn't set!")
+    if (!isDuration && urlList.values.any { it.countValue == 0L }) {
+        missingFields.add(
+            "Requests count doesn't set!\n" +
+                urlList.filter { it.value.countValue == 0L }
+                    .keys
+                    .joinToString(", "))
     }
 
     if (missingFields.isNotEmpty()) {
@@ -184,10 +263,8 @@ fun handleLaunchTest(
         updateShowDialog(true)
     } else {
         val tmpTestCase = TestCase(
-            urlList.toList(),
+            urlList,
             if (isDuration) RunType.DURATION else RunType.COUNT,
-            if (isDuration) 0 else requestCount,
-            if (isDuration) timeInMillis else 0
         )
         onUpdateTestCase(tmpTestCase)
 

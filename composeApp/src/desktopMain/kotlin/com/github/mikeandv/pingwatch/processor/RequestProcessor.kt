@@ -2,6 +2,7 @@ package com.github.mikeandv.pingwatch.processor
 
 import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.entity.TestCase
+import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import com.github.mikeandv.pingwatch.entity.TestCaseResult
 import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
@@ -24,7 +25,7 @@ fun measureResponseTime(url: String): ResponseData {
             }
         }
     } catch (e: Exception) {
-//        println("Error making request to $url: ${e.message}")
+        println("Error making request to $url: ${e.message}")
         statusCode = -1
         requestDuration = -1L
     }
@@ -33,17 +34,16 @@ fun measureResponseTime(url: String): ResponseData {
 
 
 suspend fun runByCount(
-    count: Long,
-    urls: List<String>,
+    urls: Map<String, TestCaseParams>,
     executionCounter: AtomicLong,
     cancelFlag: () -> Boolean
 ): List<ResponseData> =
     withContext(Dispatchers.IO) {
         val resultTemp = ConcurrentLinkedQueue<ResponseData>()
 
-        val jobs = urls.map { url ->
+        val jobs = urls.map { (url, param) ->
             async {
-                repeat(count.toInt()) {
+                repeat(param.countValue.toInt()) {
 
                     if (cancelFlag()) {
                         println("Job canceled ")
@@ -65,15 +65,14 @@ suspend fun runByCount(
         return@withContext resultTemp.toList()
     }
 
-suspend fun runByDuration(durationMillis: Long, urls: List<String>, cancelFlag: () -> Boolean): List<ResponseData> =
+suspend fun runByDuration(urls: Map<String, TestCaseParams>, cancelFlag: () -> Boolean): List<ResponseData> =
     coroutineScope {
         val startTime = System.currentTimeMillis()
-
         val resultTemp = ConcurrentLinkedQueue<ResponseData>()
 
-        val jobs = urls.map { url ->
+        val jobs = urls.map { (url, param) ->
             launch(Dispatchers.IO) {
-                while (System.currentTimeMillis() - startTime < durationMillis) {
+                while (System.currentTimeMillis() - startTime < param.durationValue) {
                     if (cancelFlag()) {
                         println("Job canceled")
                         return@launch
@@ -86,11 +85,9 @@ suspend fun runByDuration(durationMillis: Long, urls: List<String>, cancelFlag: 
 
         try {
             jobs.forEach { it.join() }
-//            delay(durationMillis)
         } catch (e: CancellationException) {
             println("Jobs canceled: ${e.message}")
         } finally {
-            // Завершаем все корутины
             jobs.forEach { it.cancelAndJoin() }
         }
 
@@ -100,9 +97,8 @@ suspend fun runByDuration(durationMillis: Long, urls: List<String>, cancelFlag: 
 suspend fun runR(testCase: TestCase, cancelFlag: () -> Boolean): List<TestCaseResult> {
 
     val result = when (testCase.runType) {
-        RunType.DURATION -> runByDuration(testCase.durationValue ?: 0, testCase.urls, cancelFlag)
+        RunType.DURATION -> runByDuration(testCase.urls, cancelFlag)
         RunType.COUNT -> runByCount(
-            testCase.countValue ?: 0,
             testCase.urls,
             testCase.testCaseState.getExecutionCounter(),
             cancelFlag

@@ -5,10 +5,9 @@ import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.processor.runR
 
 class TestCase(
-    val urls: List<String>,
+    val urls: Map<String, TestCaseParams>,
     val runType: RunType,
-    val countValue: Long?,
-    val durationValue: Long?,
+
 ) {
     val testCaseState: TestCaseState = TestCaseState()
     lateinit var testCaseResult: List<TestCaseResult>
@@ -34,8 +33,9 @@ class TestCase(
             0
         } else {
             when (runType) {
-                RunType.DURATION -> testCaseState.getDurationProgress(durationValue ?: 0)
-                RunType.COUNT -> testCaseState.getCountProgress((countValue ?: 0) * urls.size)
+                RunType.DURATION -> testCaseState.getDurationProgress(urls.values.maxOfOrNull { it.durationValue } ?: 0)
+
+                RunType.COUNT -> testCaseState.getCountProgress(urls.values.sumOf { it.countValue })
             }
         }
     }
@@ -45,8 +45,6 @@ class TestCase(
     }
 
     override fun toString(): String {
-        return "TestCase(urls=$urls, runType=$runType, countValue=$countValue, durationValue=$durationValue, testCaseState=$testCaseState)"
+        return "TestCase(urls=$urls, runType=$runType, testCaseState=$testCaseState)"
     }
-
-
 }
