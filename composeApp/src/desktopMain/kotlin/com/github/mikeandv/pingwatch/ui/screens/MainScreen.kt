@@ -14,6 +14,7 @@ import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Composable
 fun MainScreen(
@@ -34,9 +35,11 @@ fun MainScreen(
     var countInput by remember { mutableStateOf("") }
     var isDuration by remember { mutableStateOf(true) }
     var timeInput by remember { mutableStateOf("") }
+
     val scrollState = rememberScrollState()
 
     val coroutineScope = rememberCoroutineScope()
+    val cancelFlag = AtomicBoolean(false)
     val urlPattern = Regex("^https?://.*")
 
     MaterialTheme {
@@ -131,7 +134,7 @@ fun MainScreen(
                         horizontalAlignment = Alignment.CenterHorizontally, // For horizontal alignment
                         verticalArrangement = Arrangement.Center
                     ) {
-                        LaunchAndResultButtons(
+                        FlowControlButtons(
                             testCase = testCase,
                             onLaunchTest = {
                                 handleLaunchTest(
@@ -144,10 +147,14 @@ fun MainScreen(
                                     onUpdateTestCase = viewModel::updateTestCase,
                                     updateProgress = viewModel::updateProgress,
                                     updateShowDialog = viewModel::updateShowDialog,
-                                    updateDialogMessage = viewModel::updateDialogErrorMessage
+                                    updateDialogMessage = viewModel::updateDialogErrorMessage,
+                                    cancelFlag = { cancelFlag.get() }
                                 )
                             },
-                            onNavigate = onNavigate
+                            onNavigate = onNavigate,
+                            cancelFlag = cancelFlag,
+                            updateShowDialog = viewModel::updateShowDialog,
+                            updateDialogMessage = viewModel::updateDialogErrorMessage
                         )
                     }
                 }
@@ -361,19 +368,40 @@ fun DurationOrCountSelector(
 }
 
 @Composable
-fun LaunchAndResultButtons(
+fun FlowControlButtons(
     testCase: TestCase,
     onLaunchTest: () -> Unit,
-    onNavigate: () -> Unit
+    onNavigate: () -> Unit,
+    cancelFlag: AtomicBoolean,
+    updateShowDialog: (Boolean) -> Unit,
+    updateDialogMessage: (String) -> Unit
 ) {
 
     val status by testCase.testCaseState.status.collectAsState()
 
     Button(
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = MaterialTheme.colors.secondary  // Цвет текста
+        ),
         onClick = onLaunchTest,
         enabled = status == StatusCode.FINISHED || status == StatusCode.CREATED
     ) {
         Text("Launch")
+    }
+    Spacer(modifier = Modifier.width(16.dp))
+
+    Button(
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = MaterialTheme.colors.error  // Цвет текста
+        ),
+        onClick = {
+            cancelFlag.set(true)
+            updateDialogMessage("Test canceled by user!")
+            updateShowDialog(true)
+        },
+        enabled = testCase.testCaseState.getStatus() == StatusCode.RUNNING
+    ) {
+        Text("Cancel")
     }
     Spacer(modifier = Modifier.width(16.dp))
 

@@ -153,6 +153,7 @@ fun handleTestCountChange(
 
 fun handleLaunchTest(
     isDuration: Boolean,
+    cancelFlag: () -> Boolean,
     urlList: Set<String>,
     requestCount: Long?,
     timeInMillis: Long?,
@@ -192,7 +193,7 @@ fun handleLaunchTest(
 
         coroutineScope.launch {
             launch {
-                tmpTestCase.runTestCase()
+                tmpTestCase.runTestCase(cancelFlag)
             }
             launch {
                 updateProgress(0)

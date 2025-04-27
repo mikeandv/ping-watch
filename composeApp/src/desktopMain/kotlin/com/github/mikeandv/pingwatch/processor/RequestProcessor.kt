@@ -32,13 +32,23 @@ fun measureResponseTime(url: String): ResponseData {
 }
 
 
-suspend fun runByCount(count: Long, urls: List<String>, executionCounter: AtomicLong): List<ResponseData> =
+suspend fun runByCount(
+    count: Long,
+    urls: List<String>,
+    executionCounter: AtomicLong,
+    cancelFlag: () -> Boolean
+): List<ResponseData> =
     withContext(Dispatchers.IO) {
         val resultTemp = ConcurrentLinkedQueue<ResponseData>()
 
         val jobs = urls.map { url ->
             async {
                 repeat(count.toInt()) {
+
+                    if (cancelFlag()) {
+                        println("Job canceled ")
+                        return@async
+                    }
                     executionCounter.incrementAndGet()
 
                     val responseData = measureResponseTime(url)
@@ -46,12 +56,16 @@ suspend fun runByCount(count: Long, urls: List<String>, executionCounter: Atomic
                 }
             }
         }
+        try {
+            jobs.awaitAll()
+        } catch (e: CancellationException) {
+            println("Jobs canceled: ${e.message}")
+        }
 
-        jobs.awaitAll()
         return@withContext resultTemp.toList()
     }
 
-suspend fun runByDuration(durationMillis: Long, urls: List<String>): List<ResponseData> =
+suspend fun runByDuration(durationMillis: Long, urls: List<String>, cancelFlag: () -> Boolean): List<ResponseData> =
     coroutineScope {
         val startTime = System.currentTimeMillis()
 
@@ -60,26 +74,38 @@ suspend fun runByDuration(durationMillis: Long, urls: List<String>): List<Respon
         val jobs = urls.map { url ->
             launch(Dispatchers.IO) {
                 while (System.currentTimeMillis() - startTime < durationMillis) {
+                    if (cancelFlag()) {
+                        println("Job canceled")
+                        return@launch
+                    }
                     val responseData = measureResponseTime(url)
                     resultTemp.add(responseData)
                 }
             }
         }
 
-        delay(durationMillis)
-        jobs.forEach { it.cancelAndJoin() }
+        try {
+            jobs.forEach { it.join() }
+//            delay(durationMillis)
+        } catch (e: CancellationException) {
+            println("Jobs canceled: ${e.message}")
+        } finally {
+            // Завершаем все корутины
+            jobs.forEach { it.cancelAndJoin() }
+        }
 
         return@coroutineScope resultTemp.toList()
     }
 
-suspend fun runR(testCase: TestCase): List<TestCaseResult> {
+suspend fun runR(testCase: TestCase, cancelFlag: () -> Boolean): List<TestCaseResult> {
 
     val result = when (testCase.runType) {
-        RunType.DURATION -> runByDuration(testCase.durationValue ?: 0, testCase.urls)
+        RunType.DURATION -> runByDuration(testCase.durationValue ?: 0, testCase.urls, cancelFlag)
         RunType.COUNT -> runByCount(
             testCase.countValue ?: 0,
             testCase.urls,
-            testCase.testCaseState.getExecutionCounter()
+            testCase.testCaseState.getExecutionCounter(),
+            cancelFlag
         )
     }
 

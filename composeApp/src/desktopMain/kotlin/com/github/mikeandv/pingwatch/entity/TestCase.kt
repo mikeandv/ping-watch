@@ -13,17 +13,17 @@ class TestCase(
     val testCaseState: TestCaseState = TestCaseState()
     lateinit var testCaseResult: List<TestCaseResult>
 
-    suspend fun runTestCase() {
+    suspend fun runTestCase(cancelFlag: () -> Boolean) {
         when (runType) {
             RunType.DURATION -> {
                 testCaseState.startDurationTestCase()
-                testCaseResult = runR(this)
+                testCaseResult = runR(this, cancelFlag)
                 testCaseState.finishDurationTestCase()
             }
 
             RunType.COUNT -> {
                 testCaseState.startCountTestCase()
-                testCaseResult = runR(this)
+                testCaseResult = runR(this, cancelFlag)
                 testCaseState.finishCountTestCase()
             }
         }
