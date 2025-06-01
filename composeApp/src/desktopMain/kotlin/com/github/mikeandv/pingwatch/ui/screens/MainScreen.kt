@@ -135,6 +135,7 @@ fun MainScreen(
                             testCase = testCase,
                             onLaunchTest = {
                                 handleLaunchTest(
+                                    testCase = testCase,
                                     isDuration = isDuration,
                                     urlList = urlList,
                                     durationErrorMessage = durationErrorMessage,

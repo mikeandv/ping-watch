@@ -7,9 +7,12 @@ import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import java.io.IOException
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
+
+private val okHttpClient = OkHttpClient()
 
 fun handleUrlChange(
     input: String,
@@ -225,6 +228,7 @@ fun handleTestCountChange(
 }
 
 fun handleLaunchTest(
+    testCase: TestCase,
     isDuration: Boolean,
     cancelFlag: () -> Boolean,
     urlList: Map<String, TestCaseParams>,
@@ -263,6 +267,7 @@ fun handleLaunchTest(
         updateShowDialog(true)
     } else {
         val tmpTestCase = TestCase(
+            testCase.okHttpClient,
             urlList,
             if (isDuration) RunType.DURATION else RunType.COUNT,
         )

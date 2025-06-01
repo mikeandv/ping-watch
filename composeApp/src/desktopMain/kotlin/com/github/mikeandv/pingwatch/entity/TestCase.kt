@@ -3,11 +3,12 @@ package com.github.mikeandv.pingwatch.entity
 import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.processor.runR
+import okhttp3.OkHttpClient
 
 class TestCase(
+    val okHttpClient: OkHttpClient,
     val urls: Map<String, TestCaseParams>,
     val runType: RunType,
-
 ) {
     val testCaseState: TestCaseState = TestCaseState()
     lateinit var testCaseResult: List<TestCaseResult>

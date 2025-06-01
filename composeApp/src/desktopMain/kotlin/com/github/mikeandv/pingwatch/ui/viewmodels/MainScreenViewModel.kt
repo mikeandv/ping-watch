@@ -6,13 +6,14 @@ import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import okhttp3.OkHttpClient
 
 class MainScreenViewModel {
 
     private val _urlList = MutableStateFlow(emptyMap<String, TestCaseParams>())
     val urlList: StateFlow<Map<String, TestCaseParams>> = _urlList
 
-    private val _testCase = MutableStateFlow(TestCase(emptyMap(), RunType.COUNT))
+    private val _testCase = MutableStateFlow(TestCase(OkHttpClient(), emptyMap(), RunType.COUNT))
     val testCase: StateFlow<TestCase> = _testCase
 
     private val _progress = MutableStateFlow(0L)

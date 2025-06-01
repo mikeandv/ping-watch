@@ -8,10 +8,10 @@ plugins {
 
 kotlin {
     jvm("desktop")
-    
+
     sourceSets {
         val desktopMain by getting
-        
+
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -28,6 +28,26 @@ kotlin {
             implementation(libs.ok.http)
         }
     }
+
+    sourceSets {
+        val desktopTest by getting
+
+        // Adds common test dependencies
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            implementation(compose.uiTest)
+            implementation(libs.mockito.core)
+            implementation(libs.mockito.kotlin)
+
+        }
+
+        // Adds the desktop test dependency
+        desktopTest.dependencies {
+            implementation(compose.desktop.currentOs)
+        }
+    }
 }
 
 
@@ -42,3 +62,9 @@ compose.desktop {
         }
     }
 }
+
+//tasks {
+//    val desktopTest by getting(Test::class) {
+//        useJUnitPlatform()
+//    }
+//}
