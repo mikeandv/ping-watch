@@ -1,5 +1,6 @@
 package com.github.mikeandv.pingwatch.processor
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
@@ -28,6 +29,11 @@ class MeasureResponseTimeTest {
 
         doAnswer { invocation ->
             val callback = invocation.arguments[0] as Callback
+
+            runBlocking {
+                delay(10)
+            }
+
             callback.onResponse(call, response)
         }.whenever(call).enqueue(callbackCaptor.capture())
 
@@ -38,6 +44,7 @@ class MeasureResponseTimeTest {
 
         assertEquals(200, result.statusCode)
         assertTrue { result.duration > 0 }
+
     }
 
     @Test

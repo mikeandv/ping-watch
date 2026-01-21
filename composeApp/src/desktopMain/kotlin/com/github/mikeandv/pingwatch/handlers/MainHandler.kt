@@ -1,18 +1,17 @@
 package com.github.mikeandv.pingwatch.handlers
 
-import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.StatusCode
+import com.github.mikeandv.pingwatch.entity.CountInputResult
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
+import com.github.mikeandv.pingwatch.entity.TimeInputResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
-import java.io.IOException
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
 
-private val okHttpClient = OkHttpClient()
+//private val okHttpClient = OkHttpClient()
 
 fun handleUrlChange(
     input: String,
@@ -34,42 +33,41 @@ fun handleImport(
 ) {
     val maxFileSizeBytes = 5 * 1024 * 1024 // file size 5mb limit
     val maxLinesLimit = 20  // limit to lines in file
+
+
     val fileChooser = JFileChooser()
     val filter = FileNameExtensionFilter("Text File (*.txt)", "txt")
     fileChooser.fileFilter = filter
 
-    val result = fileChooser.showOpenDialog(null)
-    if (result == JFileChooser.APPROVE_OPTION) {
-        val file = fileChooser.selectedFile
 
-        if (file.length() <= maxFileSizeBytes) {
-            try {
-                val urls = file.readLines() // Read the file as lines
-                if (urls.size > maxLinesLimit) {
-                    updateDialogErrorMessage("Reach lines limit in file.\nLimit: $maxLinesLimit.")
-                    updateShowDialog(true)
-                } else if (urls.isEmpty()) {
-                    updateDialogErrorMessage("There is no lines in file")
-                    updateShowDialog(true)
-                } else if (urls.any { !it.matches(urlPattern) }) {
-                    updateDialogErrorMessage("Some of urls have incorrect format")
-                    updateShowDialog(true)
-                } else {
-                    // Add each URL to the list
-                    updateUrlList(urls.associateWith { TestCaseParams(false, 0L, 0L, "") })
-                }
-            } catch (e: IOException) {
-                updateDialogErrorMessage("Error reading file: ${e.message}")
-                updateShowDialog(true)
-            }
-        } else {
-            updateDialogErrorMessage("File size exceeds the limit of ${maxFileSizeBytes / (1024 * 1024)} MB.\nPlease select another file.")
-            updateShowDialog(true)
-        }
-    } else {
+    if (fileChooser.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
         updateDialogErrorMessage("No file selected.")
         updateShowDialog(true)
+        return
     }
+
+    val file = fileChooser.selectedFile
+
+    if (file.length() > maxFileSizeBytes) {
+        updateDialogErrorMessage("File size exceeds the limit of ${maxFileSizeBytes / (1024 * 1024)} MB.\nPlease select another file.")
+        updateShowDialog(true)
+        return
+    }
+
+    val result = runCatching {
+        validateUrlsFile(file.readLines(), maxLinesLimit, urlPattern)
+    }.getOrElse {
+        updateDialogErrorMessage("Error reading file: ${it.message}")
+        updateShowDialog(true)
+        return
+    }
+
+    result
+        .onSuccess { updateUrlList(it) }
+        .onFailure {
+            updateDialogErrorMessage(it.message)
+            updateShowDialog(true)
+        }
 }
 
 fun handleAddUrl(
@@ -103,38 +101,29 @@ fun handleIndividualTimeInputChange(
     updateUnformattedTime: (String, String) -> Unit,
     updateErrorMessage: (String?) -> Unit
 ) {
-    if (input.isEmpty()) {
-        updateTime(0L, key)
-        updateUnformattedTime("", key)
-        updateErrorMessage(null)
-    } else if (
-        (input.length == 1 && input.matches(Regex("^([0-9])$"))) ||
-        (input.length == 2 && input.matches(Regex("^([0-9][0-9])$"))) ||
-        (input.length == 3 && input.matches(Regex("^([0-9][0-9]):$"))) ||
-        (input.length == 4 && input.matches(Regex("^([0-9][0-9]):([0-9])$")))
-    ) {
-        updateTime(0L, key)
-        updateUnformattedTime(input, key)
-        updateErrorMessage("Invalid format (MM:SS)")
-    } else if (input.length == 5 && input.matches(Regex("^([0-9][0-9]):([0-9][0-9])$"))) {
-        updateUnformattedTime(input, key)
-        updateErrorMessage(null)
-
-        val parts = input.split(":")
-        if (parts.size == 2) {
-            val minutes = parts[0].toIntOrNull() ?: 0
-            val seconds = parts[1].toIntOrNull() ?: 0
-
-            if (seconds in 0..59) {
-                updateTime((minutes * 60 + seconds) * 1000L, key)
-            } else {
-                updateErrorMessage("Seconds must be in the range 00-59")
-            }
+    when (val result = processTimeInput(input)) {
+        is TimeInputResult.Empty -> {
+            updateTime(result.timeMillis, key)
+            updateUnformattedTime(result.unformatted, key)
+            updateErrorMessage(null)
         }
-    } else {
-        updateErrorMessage("Invalid format (MM:SS)")
-    }
 
+        is TimeInputResult.Partial -> {
+            updateTime(0L, key)
+            updateUnformattedTime(result.unformatted, key)
+            updateErrorMessage(result.error)
+        }
+
+        is TimeInputResult.Valid -> {
+            updateUnformattedTime(result.unformatted, key)
+            updateTime(result.timeMillis, key)
+            updateErrorMessage(null)
+        }
+
+        is TimeInputResult.Error -> {
+            updateErrorMessage(result.message)
+        }
+    }
 }
 
 fun handleTimeInputChange(
@@ -143,38 +132,31 @@ fun handleTimeInputChange(
     updateErrorMessage: (String?) -> Unit,
     updateTimeInMillis: (Long) -> Unit
 ) {
-    if (input.isEmpty()) {
-        updateTimeInput("")
-        updateTimeInMillis(0L)
-        updateErrorMessage(null)
-    } else if (
-        (input.length == 1 && input.matches(Regex("^([0-9])$"))) ||
-        (input.length == 2 && input.matches(Regex("^([0-9][0-9])$"))) ||
-        (input.length == 3 && input.matches(Regex("^([0-9][0-9]):$"))) ||
-        (input.length == 4 && input.matches(Regex("^([0-9][0-9]):([0-9])$")))
-    ) {
-        updateTimeInput(input)
-        updateTimeInMillis(0L)
-        updateErrorMessage("Invalid format (MM:SS)")
-    } else if (input.length == 5 && input.matches(Regex("^([0-9][0-9]):([0-9][0-9])$"))) {
-        updateTimeInput(input)
-        updateErrorMessage(null)
-
-        val parts = input.split(":")
-        if (parts.size == 2) {
-            val minutes = parts[0].toIntOrNull() ?: 0
-            val seconds = parts[1].toIntOrNull() ?: 0
-
-            if (seconds in 0..59) {
-                updateTimeInMillis((minutes * 60 + seconds) * 1000L)
-            } else {
-                updateErrorMessage("Seconds must be in the range 00-59")
-            }
+    when (val result = processTimeInput(input)) {
+        is TimeInputResult.Empty -> {
+            updateTimeInput(result.unformatted)
+            updateTimeInMillis(result.timeMillis)
+            updateErrorMessage(null)
         }
-    } else {
-        updateErrorMessage("Invalid format (MM:SS)")
+
+        is TimeInputResult.Partial -> {
+            updateTimeInput(result.unformatted)
+            updateTimeInMillis(0L)
+            updateErrorMessage(result.error)
+        }
+
+        is TimeInputResult.Valid -> {
+            updateTimeInput(result.unformatted)
+            updateTimeInMillis(result.timeMillis)
+            updateErrorMessage(null)
+        }
+
+        is TimeInputResult.Error -> {
+            updateErrorMessage(result.message)
+        }
     }
 }
+
 
 fun handleIndividualTestCountChange(
     input: String,
@@ -182,23 +164,23 @@ fun handleIndividualTestCountChange(
     updateCount: (Long, String) -> Unit,
     updateErrorMessage: (String?) -> Unit
 ) {
-    val errorMessage = when {
-        input.isEmpty() -> {
-            updateCount(0L, key)
-            null
+    when (val result = processCountInput(input)) {
+        is CountInputResult.Empty -> {
+            updateCount(result.value, key)
+            updateErrorMessage(null)
         }
 
-        input.toLongOrNull() != null -> {
-            updateCount(input.toLong(), key)
-            null
+        is CountInputResult.Valid -> {
+            updateCount(result.value, key)
+            updateErrorMessage(null)
         }
 
-        else -> {
-            "Enter the number"
+        is CountInputResult.Error -> {
+            updateErrorMessage(result.message)
         }
     }
-    updateErrorMessage(errorMessage)
 }
+
 
 fun handleTestCountChange(
     input: String,
@@ -206,26 +188,25 @@ fun handleTestCountChange(
     updateRequestCount: (Long) -> Unit,
     updateErrorMessage: (String?) -> Unit
 ) {
-    val errorMessage = when {
-        input.isEmpty() -> {
+    when (val result = processCountInput(input)) {
+        is CountInputResult.Empty -> {
             updateCountInput("")
-            updateRequestCount(0L)
-            null
+            updateRequestCount(result.value)
+            updateErrorMessage(null)
         }
 
-        input.toLongOrNull() != null -> {
+        is CountInputResult.Valid -> {
             updateCountInput(input)
-            updateRequestCount(input.toLong())
-            null
+            updateRequestCount(result.value)
+            updateErrorMessage(null)
         }
 
-        else -> {
-            "Enter the number"
+        is CountInputResult.Error -> {
+            updateErrorMessage(result.message)
         }
     }
-
-    updateErrorMessage(errorMessage)
 }
+
 
 fun handleLaunchTest(
     testCase: TestCase,
@@ -239,52 +220,29 @@ fun handleLaunchTest(
     updateShowDialog: (Boolean) -> Unit,
     updateDialogMessage: (String) -> Unit
 ) {
-    val missingFields = mutableListOf<String>()
-    if (urlList.isEmpty()) {
-        missingFields.add("URLs list is empty!")
-    }
-    if (!durationErrorMessage.isNullOrEmpty()) {
-        missingFields.add("Duration format is incorrect!")
-    }
-    if (isDuration && urlList.values.any { it.durationValue == 0L }) {
-        missingFields.add(
-            "Time duration doesn't set!\n" +
-                    urlList.filter { it.value.durationValue == 0L }
-                        .keys
-                        .joinToString(", "))
-    }
-    if (!isDuration && urlList.values.any { it.countValue == 0L }) {
-        missingFields.add(
-            "Requests count doesn't set!\n" +
-                urlList.filter { it.value.countValue == 0L }
-                    .keys
-                    .joinToString(", "))
-    }
+    val validation = validateLaunchTest(urlList, isDuration, durationErrorMessage)
 
-    if (missingFields.isNotEmpty()) {
-        val errorMessage = "Incorrect values for running the test:\n" + missingFields.joinToString("\n")
-        updateDialogMessage(errorMessage)
+    if (!validation.isValid) {
+        updateDialogMessage(validation.errorMessage!!)
         updateShowDialog(true)
-    } else {
-        val tmpTestCase = TestCase(
-            testCase.okHttpClient,
-            urlList,
-            if (isDuration) RunType.DURATION else RunType.COUNT,
-        )
-        onUpdateTestCase(tmpTestCase)
+        return
+    }
 
-        coroutineScope.launch {
-            launch {
-                tmpTestCase.runTestCase(cancelFlag)
-            }
-            launch {
-                updateProgress(0)
-                while (tmpTestCase.testCaseState.getStatus() == StatusCode.RUNNING ||
-                    tmpTestCase.testCaseState.getStatus() == StatusCode.CREATED
-                ) {
-                    delay(1000)
-                    updateProgress(tmpTestCase.getProgress())
-                }
+    val tmpTestCase = buildTestCase(testCase, urlList, isDuration)
+    onUpdateTestCase(tmpTestCase)
+
+    coroutineScope.launch {
+        launch {
+            tmpTestCase.runTestCase(cancelFlag)
+        }
+        launch {
+            updateProgress(0)
+            while (
+                tmpTestCase.testCaseState.getStatus() == StatusCode.RUNNING ||
+                tmpTestCase.testCaseState.getStatus() == StatusCode.CREATED
+            ) {
+                delay(1000)
+                updateProgress(tmpTestCase.getProgress())
             }
         }
     }

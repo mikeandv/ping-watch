@@ -1,6 +1,7 @@
 package com.github.mikeandv.pingwatch.processor
 
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
@@ -29,6 +30,9 @@ class RunByDurationTest {
 
         doAnswer { invocation ->
             val callback = invocation.arguments[0] as Callback
+            runBlocking {
+                delay(10)
+            }
             callback.onResponse(call, response)
         }.whenever(call).enqueue(callbackCaptor.capture())
 
@@ -52,8 +56,8 @@ class RunByDurationTest {
         val result = runByDurationV2(client, urls) {
             System.currentTimeMillis() - startTime > 1000L
         }
-
+        println(result.size)
         assertTrue { result.isNotEmpty()}
-        assertTrue { result.size < 50000}
+        assertTrue { result.size < 100}
     }
 }
