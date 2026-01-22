@@ -1,12 +1,10 @@
 package com.github.mikeandv.pingwatch.handlers
 
-import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.entity.CountInputResult
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import com.github.mikeandv.pingwatch.entity.TimeInputResult
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
@@ -232,18 +230,11 @@ fun handleLaunchTest(
     onUpdateTestCase(tmpTestCase)
 
     coroutineScope.launch {
-        launch {
-            tmpTestCase.runTestCase(cancelFlag)
-        }
-        launch {
-            updateProgress(0)
-            while (
-                tmpTestCase.testCaseState.getStatus() == StatusCode.RUNNING ||
-                tmpTestCase.testCaseState.getStatus() == StatusCode.CREATED
-            ) {
-                delay(1000)
-                updateProgress(tmpTestCase.getProgress())
-            }
-        }
+        tmpTestCase.progressFlow()
+            .collect { updateProgress(it.toLong()) }
+    }
+
+    coroutineScope.launch {
+        tmpTestCase.runTestCase(cancelFlag)
     }
 }

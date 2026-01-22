@@ -5,6 +5,8 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -251,7 +253,7 @@ fun UrlListColumn(
         var individualDurationErrorMessage by remember { mutableStateOf<String?>(null) }
 
         Row(
-            modifier = Modifier.fillMaxWidth().height(70.dp),
+            modifier = Modifier.fillMaxWidth().height(60.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -336,8 +338,16 @@ fun UrlListColumn(
                 Spacer(modifier = Modifier.width(250.dp))
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Button(onClick = { onRemoveUrl(key) }) {
-                Text("Delete")
+
+            IconButton(
+                onClick = { onRemoveUrl(key) },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Remove",
+                    tint = MaterialTheme.colors.error
+                )
             }
         }
         if (index != urlList.size - 1) {

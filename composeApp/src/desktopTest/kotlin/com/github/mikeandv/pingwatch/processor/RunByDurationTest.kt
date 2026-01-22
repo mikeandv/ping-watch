@@ -1,63 +1,194 @@
-package com.github.mikeandv.pingwatch.processor
-
+import com.github.mikeandv.pingwatch.RunType
+import com.github.mikeandv.pingwatch.entity.ExecutionMode
+import com.github.mikeandv.pingwatch.entity.ResponseData
+import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import okhttp3.Call
-import okhttp3.Callback
+import com.github.mikeandv.pingwatch.processor.measureResponseTimeV2
+import com.github.mikeandv.pingwatch.processor.runByDuration
+import io.mockk.*
+import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
-import okhttp3.Response
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.doAnswer
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-
-import kotlin.test.assertTrue
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.*
 
 class RunByDurationTest {
-    private val client: OkHttpClient = mock()
 
     @BeforeTest
-    fun prepareMock() {
-        val call: Call = mock()
-        val callbackCaptor = argumentCaptor<Callback>()
-        val response: Response = mock()
+    fun setup() {
+        mockkStatic(::measureResponseTimeV2)
+    }
 
-        whenever(client.newCall(any())).thenReturn(call)
-
-        doAnswer { invocation ->
-            val callback = invocation.arguments[0] as Callback
-            runBlocking {
-                delay(10)
-            }
-            callback.onResponse(call, response)
-        }.whenever(call).enqueue(callbackCaptor.capture())
-
-        whenever(response.code).thenReturn(200)
+    @AfterTest
+    fun tearDown() {
+        unmockkStatic(::measureResponseTimeV2)
+        clearAllMocks()
     }
 
     @Test
-    fun `should execute tasks within the given duration`() = runBlocking {
-        val urls = mapOf("http://example.com" to TestCaseParams(false, 0L, 1000L, "00:01"))
+    fun `SEQUENTIAL - returns some results`() = runTest {
+        val client = mockk<OkHttpClient>(relaxed = true)
 
-        val result = runByDurationV2(client, urls) { false }
-        assertTrue { result.isNotEmpty() }
-    }
+        val urls = linkedMapOf(
+            "u1" to TestCaseParams(countValue = 0, durationValue = 30L, isEdit = false, unformattedDurationValue = ""),
+            "u2" to TestCaseParams(countValue = 0, durationValue = 30L, isEdit = false, unformattedDurationValue = "")
+        )
 
-    @Test
-    fun `should cancel job execution when canselFlag is true`() = runBlocking {
-        val urls = mapOf("http://example.com" to TestCaseParams(false, 0, 2000L, "00:05"))
+        val testCase = TestCase(
+            runType = RunType.DURATION,
+            executionMode = ExecutionMode.SEQUENTIAL,
+            urls = urls,
+            okHttpClient = client,
+            parallelism = 2
+        )
 
-        val startTime = System.currentTimeMillis()
-
-        val result = runByDurationV2(client, urls) {
-            System.currentTimeMillis() - startTime > 1000L
+        coEvery { measureResponseTimeV2(any(), any(), any()) } answers {
+            val url = secondArg<String>()
+            ResponseData(url, 200, 1L, "")
         }
-        println(result.size)
-        assertTrue { result.isNotEmpty()}
-        assertTrue { result.size < 100}
+
+        val result = runByDuration(testCase, cancelFlag = { false })
+
+        assertTrue(result.isNotEmpty(), "Should return at least 1 result")
+        assertTrue(result.all { it.url == "u1" || it.url == "u2" })
+
+        coVerify(atLeast = 1) { measureResponseTimeV2(any(), any(), any()) }
+    }
+
+    @Test
+    fun `SEQUENTIAL - cancel stops early`() = runTest {
+        val client = mockk<OkHttpClient>(relaxed = true)
+
+        val urls = linkedMapOf(
+            "u1" to TestCaseParams(
+                countValue = 0,
+                durationValue = 10_000L,
+                isEdit = false,
+                unformattedDurationValue = ""
+            )
+        )
+
+        val testCase = TestCase(
+            runType = RunType.DURATION,
+            executionMode = ExecutionMode.SEQUENTIAL,
+            urls = urls,
+            okHttpClient = client,
+            parallelism = 2
+        )
+
+        val completed = AtomicInteger(0)
+        val cancel = AtomicBoolean(false)
+
+        coEvery { measureResponseTimeV2(any(), any(), any()) } answers {
+            val c = completed.incrementAndGet()
+            if (c >= 3) cancel.set(true)
+            ResponseData("u1", 200, 1L, "")
+        }
+
+        val result = runByDuration(testCase, cancelFlag = { cancel.get() })
+
+        assertEquals(3, result.size, "should return 3 results after cancel")
+        coVerify(exactly = 3) { measureResponseTimeV2(any(), any(), any()) }
+    }
+
+    @Test
+    fun `PARALLEL - returns some results`() = runTest {
+        val client = mockk<OkHttpClient>(relaxed = true)
+
+        val urls = linkedMapOf(
+            "u1" to TestCaseParams(countValue = 0, durationValue = 40L, isEdit = false, unformattedDurationValue = ""),
+            "u2" to TestCaseParams(countValue = 0, durationValue = 40L, isEdit = false, unformattedDurationValue = "")
+        )
+
+        val testCase = TestCase(
+            runType = RunType.DURATION,
+            executionMode = ExecutionMode.PARALLEL,
+            urls = urls,
+            okHttpClient = client,
+            parallelism = 2
+        )
+
+        coEvery { measureResponseTimeV2(any(), any(), any()) } answers {
+            val url = secondArg<String>()
+            ResponseData(url, 200, 1L, "")
+        }
+
+        val result = runByDuration(testCase, cancelFlag = { false })
+
+        assertTrue(result.isNotEmpty())
+        assertTrue(result.all { it.url == "u1" || it.url == "u2" })
+
+        coVerify(atLeast = 1) { measureResponseTimeV2(any(), any(), any()) }
+    }
+
+    @Test
+    fun `PARALLEL - cancel immediately returns empty`() = runTest {
+        val client = mockk<OkHttpClient>(relaxed = true)
+
+        val urls = linkedMapOf(
+            "u1" to TestCaseParams(countValue = 0, durationValue = 200L, isEdit = false, unformattedDurationValue = ""),
+            "u2" to TestCaseParams(countValue = 0, durationValue = 200L, isEdit = false, unformattedDurationValue = "")
+        )
+
+        val testCase = TestCase(
+            runType = RunType.DURATION,
+            executionMode = ExecutionMode.PARALLEL,
+            urls = urls,
+            okHttpClient = client,
+            parallelism = 4
+        )
+
+        coEvery { measureResponseTimeV2(any(), any(), any()) } answers {
+            val url = secondArg<String>()
+            ResponseData(url, 200, 1L, "")
+        }
+
+        val result = runByDuration(testCase, cancelFlag = { true })
+
+        assertTrue(result.isEmpty())
+        coVerify(exactly = 0) { measureResponseTimeV2(any(), any(), any()) }
+    }
+
+    @Test
+    fun `PARALLEL - cancel mid way stops eventually (non-strict)`() = runTest {
+        val client = mockk<OkHttpClient>(relaxed = true)
+
+        val urls = linkedMapOf(
+            "u1" to TestCaseParams(
+                countValue = 0,
+                durationValue = 10_000L,
+                isEdit = false,
+                unformattedDurationValue = ""
+            ),
+            "u2" to TestCaseParams(
+                countValue = 0,
+                durationValue = 10_000L,
+                isEdit = false,
+                unformattedDurationValue = ""
+            )
+        )
+
+        val testCase = TestCase(
+            runType = RunType.DURATION,
+            executionMode = ExecutionMode.PARALLEL,
+            urls = urls,
+            okHttpClient = client,
+            parallelism = 4
+        )
+
+        val completed = AtomicInteger(0)
+        val cancel = AtomicBoolean(false)
+
+        coEvery { measureResponseTimeV2(any(), any(), any()) } answers {
+            val c = completed.incrementAndGet()
+            if (c >= 20) cancel.set(true)
+            val url = secondArg<String>()
+            ResponseData(url, 200, 1L, "")
+        }
+
+        val result = runByDuration(testCase, cancelFlag = { cancel.get() })
+
+        assertTrue(result.size >= 20)
+        assertTrue(result.size < 200)
     }
 }

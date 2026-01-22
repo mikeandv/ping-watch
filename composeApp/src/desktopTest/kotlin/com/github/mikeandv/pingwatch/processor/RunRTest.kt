@@ -1,10 +1,12 @@
 package com.github.mikeandv.pingwatch.processor
 
 import com.github.mikeandv.pingwatch.RunType
+import com.github.mikeandv.pingwatch.entity.ExecutionMode
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -42,24 +44,26 @@ class RunRTest {
     }
 
     @Test
-    fun `should execute with RunType COUNT`() = runBlocking {
+    fun `should execute with RunType COUNT`() = runTest {
         val testCase = TestCase(
             client,
+            urls = mapOf("http://example.com" to TestCaseParams(false, 3L, 0L, "")),
             runType = RunType.COUNT,
-            urls = mapOf("http://example.com" to TestCaseParams(false, 3L, 0L, ""))
-        )
+            ExecutionMode.SEQUENTIAL,
+            8)
 
         val result = runR(testCase) { false }
         assertEquals(1, result.size)
     }
 
     @Test
-    fun `should execute with RunType DURATION`() = runBlocking {
+    fun `should execute with RunType DURATION`() = runTest {
         val testCase = TestCase(
             client,
+            urls = mapOf("http://example.com" to TestCaseParams(false, 0, 1000L, "00:01")),
             runType = RunType.DURATION,
-            urls = mapOf("http://example.com" to TestCaseParams(false, 0, 1000L, "00:01"))
-        )
+            ExecutionMode.SEQUENTIAL,
+            8)
 
         val result = runR(testCase) { false }
         assertTrue { result.isNotEmpty() }

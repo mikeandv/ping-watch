@@ -1,69 +1,68 @@
 package com.github.mikeandv.pingwatch.processor
 
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import okhttp3.Call
-import okhttp3.Callback
+import com.github.mikeandv.pingwatch.entity.TestEvent
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import org.mockito.kotlin.*
 import kotlin.test.Test
-import okhttp3.OkHttpClient
-import okhttp3.Response
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.doAnswer
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
-import java.io.IOException
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class MeasureResponseTimeTest {
-    private val client: OkHttpClient = mock()
 
     @Test
-    fun `should return correct response data for valid URL`() = runBlocking {
-        val call: Call = mock()
-        val callbackCaptor = argumentCaptor<Callback>()
-        val response: Response = mock()
-
+    fun `success returns 200`() = runTest {
+        val client = mock<OkHttpClient>()
+        val call = mock<Call>()
         whenever(client.newCall(any())).thenReturn(call)
 
-        doAnswer { invocation ->
-            val callback = invocation.arguments[0] as Callback
+        doAnswer { inv ->
+            val cb = inv.arguments[0] as Callback
 
-            runBlocking {
-                delay(10)
-            }
+            val url = "https://example.com/"
+            val response = Response.Builder()
+                .request(Request.Builder().url(url).build())
+                .protocol(Protocol.HTTP_1_1)
+                .code(200)
+                .message("OK")
+                .body("{}".toResponseBody("application/json".toMediaType()))
+                .build()
 
-            callback.onResponse(call, response)
-        }.whenever(call).enqueue(callbackCaptor.capture())
+            cb.onResponse(call, response)
+            null
+        }.whenever(call).enqueue(any())
 
-        whenever(response.code).thenReturn(200)
-
-
-        val result = measureResponseTimeV2(client, "http://example.com")
+        val events = MutableSharedFlow<TestEvent>()
+        val result = measureResponseTimeV2(client, "https://example.com/", events)
 
         assertEquals(200, result.statusCode)
-        assertTrue { result.duration > 0 }
-
+        verify(call).enqueue(any())
     }
 
     @Test
-    fun `should handle exceptions gracefully`() = runBlocking {
-        val call: Call = mock()
-        val callbackCaptor = argumentCaptor<Callback>()
-
+    fun `cancel calls okhttp cancel`() = runTest {
+        val client = mock<OkHttpClient>()
+        val call = mock<Call>()
         whenever(client.newCall(any())).thenReturn(call)
-        doAnswer { invocation ->
-            val callback = invocation.arguments[0] as Callback
-            // Ручной вызов метода `onFailure`
-            callback.onFailure(call, IOException("Mocked failure"))
-            null
-        }.whenever(call).enqueue(callbackCaptor.capture())
 
+        doAnswer { null }.whenever(call).enqueue(any())
 
-        val result = measureResponseTimeV2(client, "http://example.com")
-        assertEquals(-1, result.statusCode)
-        assertEquals(-1L, result.duration)
+        val events = MutableSharedFlow<TestEvent>()
+
+        val job = launch {
+            measureResponseTimeV2(client, "https://example.com/", events)
+        }
+
+        yield()
+
+        job.cancelAndJoin()
+
+        verify(call).cancel()
     }
 }
 

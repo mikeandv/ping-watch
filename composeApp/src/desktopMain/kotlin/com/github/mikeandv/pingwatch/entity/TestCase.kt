@@ -1,17 +1,29 @@
 package com.github.mikeandv.pingwatch.entity
 
 import com.github.mikeandv.pingwatch.RunType
-import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.processor.runR
+import kotlinx.coroutines.flow.*
 import okhttp3.OkHttpClient
 
 class TestCase(
     val okHttpClient: OkHttpClient,
     val urls: Map<String, TestCaseParams>,
     val runType: RunType,
+    val executionMode: ExecutionMode,
+    val parallelism: Int
 ) {
     val testCaseState: TestCaseState = TestCaseState()
     lateinit var testCaseResult: List<TestCaseResult>
+
+    val events = MutableSharedFlow<TestEvent>(
+        extraBufferCapacity = 256
+    )
+
+    fun totalRequests(): Long =
+        urls.values.sumOf { it.countValue }
+
+    fun maxDuration(): Long =
+        urls.values.maxOf { it.durationValue }
 
     suspend fun runTestCase(cancelFlag: () -> Boolean) {
         when (runType) {
@@ -29,23 +41,47 @@ class TestCase(
         }
     }
 
-    fun getProgress(): Long {
-        return if (testCaseState.getStatus() == StatusCode.CREATED) {
-            0
-        } else {
-            when (runType) {
-                RunType.DURATION -> testCaseState.getDurationProgress(urls.values.maxOfOrNull { it.durationValue } ?: 0)
+    fun progressFlow(now: () -> Long = { System.currentTimeMillis() }): Flow<Int> {
+        return events.runningFold(ProgressState()) { state, event ->
+            when (event) {
+                is TestEvent.Started ->
+                    state.copy(
+                        total = event.totalRequests,
+                        durationMs = event.durationMs,
+                        startedAt = now()
+                    )
 
-                RunType.COUNT -> testCaseState.getCountProgress(urls.values.sumOf { it.countValue })
+                TestEvent.RequestCompleted ->
+                    state.copy(completed = state.completed + 1)
+
+                TestEvent.Finished ->
+                    state.copy(finished = true)
             }
-        }
+        }.mapNotNull { state ->
+            when {
+                state.total != null && state.total > 0 ->
+                    ((state.completed * 100) / state.total).toInt()
+
+                state.durationMs != null && state.durationMs > 0 -> {
+                    val elapsed = now() - state.startedAt
+                    ((elapsed * 100) / state.durationMs).toInt().coerceAtMost(100)
+                }
+
+                else -> null
+            }
+        }.distinctUntilChanged()
     }
 
-    fun getState(): StatusCode {
-        return testCaseState.getStatus()
-    }
 
     override fun toString(): String {
         return "TestCase(urls=$urls, runType=$runType, testCaseState=$testCaseState)"
     }
+
+    data class ProgressState(
+        val completed: Long = 0,
+        val total: Long? = null,
+        val durationMs: Long? = null,
+        val startedAt: Long = 0,
+        val finished: Boolean = false
+    )
 }

@@ -1,11 +1,7 @@
 package com.github.mikeandv.pingwatch.handlers
 
 import com.github.mikeandv.pingwatch.RunType
-import com.github.mikeandv.pingwatch.entity.CountInputResult
-import com.github.mikeandv.pingwatch.entity.LaunchValidationResult
-import com.github.mikeandv.pingwatch.entity.TestCase
-import com.github.mikeandv.pingwatch.entity.TestCaseParams
-import com.github.mikeandv.pingwatch.entity.TimeInputResult
+import com.github.mikeandv.pingwatch.entity.*
 
 fun validateUrlsFile(
     lines: List<String>,
@@ -128,7 +124,9 @@ fun buildTestCase(
     return TestCase(
         original.okHttpClient,
         urlList,
-        if (isDuration) RunType.DURATION else RunType.COUNT
+        if (isDuration) RunType.DURATION else RunType.COUNT,
+        original.executionMode,
+        original.parallelism
     )
 }
 
