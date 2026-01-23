@@ -1,9 +1,10 @@
 package com.github.mikeandv.pingwatch.ui.screens
 
-
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -11,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.StatusCode
 import com.github.mikeandv.pingwatch.entity.TestCase
@@ -18,6 +20,8 @@ import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import com.github.mikeandv.pingwatch.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
 import java.util.concurrent.atomic.AtomicBoolean
+
+private val URL_PATTERN = Regex("^https?://([a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,}(:\\d+)?(/\\S*)?$")
 
 @Composable
 fun MainScreen(
@@ -36,200 +40,269 @@ fun MainScreen(
     val showDialog by viewModel.showDialog.collectAsState()
 
     var url by remember { mutableStateOf("") }
-    val scrollState = rememberScrollState()
+    var individualErrorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
-    val cancelFlag = AtomicBoolean(false)
-    val urlPattern = Regex("^https?://([a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,}(:\\d+)?(/\\S*)?$")
+    val cancelFlag = remember { AtomicBoolean(false) }
 
     MaterialTheme {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
+            modifier = Modifier.fillMaxWidth().padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Column for parameters
-            Column(
-                modifier = Modifier
-                    .weight(4f)
-                    .padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-            ) {
-                // URL input, add, and import buttons
-                UrlInput(
-                    url = url,
-                    onUrlChange = { input ->
-                        handleUrlChange(
-                            input = input,
-                            updateUrl = { url = it },
-                            updateErrorMessage = viewModel::updateUrlErrorMessage,
-                            urlPattern = urlPattern
-                        )
-                    },
-                    urlErrorMessage = urlErrorMessage,
-                    onAddUrl = {
-                        handleAddUrl(
-                            url = url,
-                            urlPattern = urlPattern,
-                            updateUrlList = viewModel::updateUrlList,
-                            currentUrls = urlList,
-                            resetUrl = { url = "" },
-                            updateErrorMessage = viewModel::updateUrlErrorMessage
-                        )
-                    },
-                    onImport = {
-                        handleImport(
-                            updateUrlList = viewModel::updateUrlList,
-                            updateDialogErrorMessage = viewModel::updateDialogErrorMessage,
-                            updateShowDialog = viewModel::updateShowDialog,
-                            urlPattern = urlPattern
-                        )
-                    }
-                )
-                Row(
-                    modifier = Modifier
-                        .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-
-                        // Duration/Count selection
-                        DurationOrCountSelector(
-                            isDuration = isDuration,
-                            onDurationSelected = {
-                                viewModel.updateIsDuration(true)
-                                viewModel.updateDurationErrorMessage(null)
-                                viewModel.updateCountInput("")
-                            },
-                            onCountSelected = {
-                                viewModel.updateIsDuration(false)
-                                viewModel.updateDurationErrorMessage(null)
-                                viewModel.updateTimeInput("")
-                            },
-                            countInput = countInput,
-                            timeInput = timeInput,
-                            onTimeInputChange = { input ->
-                                handleTimeInputChange(
-                                    input = input,
-                                    updateTimeInput = viewModel::updateTimeInput,
-                                    updateErrorMessage = viewModel::updateDurationErrorMessage,
-                                    updateTimeInMillis = viewModel::updateTimeInMillis
-                                )
-                            },
-                            durationErrorMessage = durationErrorMessage,
-                            onCountInputChange = { input ->
-                                handleTestCountChange(
-                                    input = input,
-                                    updateCountInput = viewModel::updateCountInput,
-                                    updateRequestCount = viewModel::updateRequestCount,
-                                    updateErrorMessage = viewModel::updateDurationErrorMessage
-                                )
-                            },
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally, // For horizontal alignment
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        FlowControlButtons(
-                            testCase = testCase,
-                            onLaunchTest = {
-                                handleLaunchTest(
-                                    testCase = testCase,
-                                    isDuration = isDuration,
-                                    urlList = urlList,
-                                    durationErrorMessage = durationErrorMessage,
-                                    coroutineScope = coroutineScope,
-                                    onUpdateTestCase = viewModel::updateTestCase,
-                                    updateProgress = viewModel::updateProgress,
-                                    updateShowDialog = viewModel::updateShowDialog,
-                                    updateDialogMessage = viewModel::updateDialogErrorMessage,
-                                    cancelFlag = { cancelFlag.get() }
-                                )
-                            },
-                            onNavigate = onNavigate,
-                            cancelFlag = cancelFlag,
-                            updateShowDialog = viewModel::updateShowDialog,
-                            updateDialogMessage = viewModel::updateDialogErrorMessage
-                        )
-                    }
-                }
-            }
-
-            // URL list column
+            val errorMessage = urlErrorMessage ?: durationErrorMessage ?: individualErrorMessage
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(3f)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
-                    .padding(10.dp)
+                    .height(32.dp)
+                    .background(
+                        if (errorMessage != null) Color(0xFFFFD54F) else Color.Transparent,
+                        RoundedCornerShape(4.dp)
+                    ),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Column(
-                    modifier = Modifier
-                        .padding(end = 12.dp)
-                        .verticalScroll(scrollState)
-                ) {
-                    UrlListColumn(
-                        urlList = urlList,
-                        isDuration = isDuration,
-                        timeInput = timeInput,
-                        countInput = countInput,
-                        updateIndividualCount = viewModel::updateRequestCountByKey,
-                        updateIndividualTime = viewModel::updateTimeInMillisByKey,
-                        updateIndividualUnformattedTime = viewModel::updateUnformattedDurationValueByKey,
-                        updateIndividualIsEdit = viewModel::updateIsEditByKey,
-                        onRemoveUrl = { urlToRemove ->
-                            viewModel.updateUrlList(urlList.minus(urlToRemove))
-                        })
+                errorMessage?.let { msg ->
+                    Text(
+                        text = msg,
+                        color = Color.Black,
+                        style = MaterialTheme.typography.body2,
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
                 }
-                VerticalScrollbar(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    adapter = rememberScrollbarAdapter(scrollState)
+            }
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                FlowControlButtons(
+                    testCase = testCase,
+                    onLaunchTest = {
+                        handleLaunchTest(
+                            testCase, isDuration, { cancelFlag.get() }, urlList, durationErrorMessage, coroutineScope,
+                            viewModel::updateTestCase, viewModel::updateProgress, viewModel::updateShowDialog,
+                            viewModel::updateDialogErrorMessage
+                        )
+                    },
+                    onNavigate = onNavigate,
+                    cancelFlag = cancelFlag,
+                    updateShowDialog = viewModel::updateShowDialog,
+                    updateDialogMessage = viewModel::updateDialogErrorMessage
                 )
-
             }
-            // Progress column
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(10.dp),
-            ) {
-                ProgressColumn(progress = progress)
-            }
-        }
 
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    viewModel.updateShowDialog(false)
+            ParametersSection(
+                modifier = Modifier.weight(2f),
+                url = url,
+                onUrlChange = { input ->
+                    handleUrlChange(input, { url = it }, viewModel::updateUrlErrorMessage, URL_PATTERN)
                 },
-                title = { Text("Error") },
-                text = { Text(dialogErrorMessage!!) },
-                confirmButton = {
-                    Button(onClick = { viewModel.updateShowDialog(false) }) {
-                        Text("Ок")
-                    }
-                }
+                urlErrorMessage = urlErrorMessage,
+                onAddUrl = {
+                    handleAddUrl(
+                        url,
+                        URL_PATTERN,
+                        viewModel::updateUrlList,
+                        urlList,
+                        { url = "" },
+                        viewModel::updateUrlErrorMessage
+                    )
+                },
+                onImport = {
+                    handleImport(
+                        viewModel::updateUrlList,
+                        viewModel::updateShowDialog,
+                        viewModel::updateDialogErrorMessage,
+                        URL_PATTERN
+                    )
+                },
+                isDuration = isDuration,
+                onDurationSelected = {
+                    viewModel.updateIsDuration(true)
+                    viewModel.updateDurationErrorMessage(null)
+                    viewModel.updateCountInput("")
+                },
+                onCountSelected = {
+                    viewModel.updateIsDuration(false)
+                    viewModel.updateDurationErrorMessage(null)
+                    viewModel.updateTimeInput("")
+                },
+                countInput = countInput,
+                timeInput = timeInput,
+                onTimeInputChange = { input ->
+                    handleTimeInputChange(
+                        input,
+                        viewModel::updateTimeInput,
+                        viewModel::updateDurationErrorMessage,
+                        viewModel::updateTimeInMillis
+                    )
+                },
+                onCountInputChange = { input ->
+                    handleTestCountChange(
+                        input,
+                        viewModel::updateCountInput,
+                        viewModel::updateRequestCount,
+                        viewModel::updateDurationErrorMessage
+                    )
+                },
+                durationErrorMessage = durationErrorMessage,
+                progress = progress
+            )
+
+            UrlListSection(
+                modifier = Modifier.weight(4f),
+                urlList = urlList,
+                isDuration = isDuration,
+                timeInput = timeInput,
+                countInput = countInput,
+                updateIndividualCount = viewModel::updateRequestCountByKey,
+                updateIndividualTime = viewModel::updateTimeInMillisByKey,
+                updateIndividualUnformattedTime = viewModel::updateUnformattedDurationValueByKey,
+                updateIndividualIsEdit = viewModel::updateIsEditByKey,
+                onRemoveUrl = { viewModel.updateUrlList(urlList.minus(it)) },
+                onIndividualErrorChange = { individualErrorMessage = it }
             )
         }
+
+        ErrorDialog(
+            showDialog = showDialog,
+            message = dialogErrorMessage,
+            onDismiss = { viewModel.updateShowDialog(false) }
+        )
+    }
+}
+
+@Composable
+private fun ParametersSection(
+    modifier: Modifier = Modifier,
+    url: String,
+    onUrlChange: (String) -> Unit,
+    urlErrorMessage: String?,
+    onAddUrl: () -> Unit,
+    onImport: () -> Unit,
+    isDuration: Boolean,
+    onDurationSelected: () -> Unit,
+    onCountSelected: () -> Unit,
+    countInput: String,
+    timeInput: String,
+    onTimeInputChange: (String) -> Unit,
+    onCountInputChange: (String) -> Unit,
+    durationErrorMessage: String?,
+    progress: Long
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        UrlInput(
+            url = url,
+            onUrlChange = onUrlChange,
+            urlErrorMessage = urlErrorMessage,
+            onAddUrl = onAddUrl,
+            onImport = onImport
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            DurationOrCountSelector(
+                isDuration = isDuration,
+                onDurationSelected = onDurationSelected,
+                onCountSelected = onCountSelected,
+                countInput = countInput,
+                timeInput = timeInput,
+                onTimeInputChange = onTimeInputChange,
+                durationErrorMessage = durationErrorMessage,
+                onCountInputChange = onCountInputChange
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            ProgressColumn(progress = progress)
+
+            Spacer(modifier = Modifier.width(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun UrlListSection(
+    modifier: Modifier = Modifier,
+    urlList: Map<String, TestCaseParams>,
+    isDuration: Boolean,
+    timeInput: String,
+    countInput: String,
+    updateIndividualCount: (Long, String) -> Unit,
+    updateIndividualTime: (Long, String) -> Unit,
+    updateIndividualUnformattedTime: (String, String) -> Unit,
+    updateIndividualIsEdit: (Boolean, String) -> Unit,
+    onRemoveUrl: (String) -> Unit,
+    onIndividualErrorChange: (String?) -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
+            .padding(10.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(end = 12.dp).verticalScroll(scrollState)
+        ) {
+            UrlListColumn(
+                urlList = urlList,
+                isDuration = isDuration,
+                timeInput = timeInput,
+                countInput = countInput,
+                updateIndividualCount = updateIndividualCount,
+                updateIndividualTime = updateIndividualTime,
+                updateIndividualUnformattedTime = updateIndividualUnformattedTime,
+                updateIndividualIsEdit = updateIndividualIsEdit,
+                onRemoveUrl = onRemoveUrl,
+                onIndividualErrorChange = onIndividualErrorChange
+            )
+        }
+        VerticalScrollbar(
+            modifier = Modifier.align(Alignment.CenterEnd),
+            adapter = rememberScrollbarAdapter(scrollState)
+        )
+    }
+}
+
+@Composable
+private fun ErrorDialog(
+    showDialog: Boolean,
+    message: String?,
+    onDismiss: () -> Unit
+) {
+    if (showDialog && message != null) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Error") },
+            text = { Text(message) },
+            confirmButton = {
+                Button(onClick = onDismiss) {
+                    Text("Ок")
+                }
+            }
+        )
     }
 }
 
 
 @Composable
 fun ProgressColumn(progress: Long) {
-    Text(text = "Progress: $progress%")
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    LinearProgressIndicator(
-        progress = progress / 100f, // Convert percentages to the range 0.0 - 1.0
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(8.dp)
-    )
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.size(80.dp)
+    ) {
+        CircularProgressIndicator(
+            progress = progress / 100f,
+            modifier = Modifier.fillMaxSize(),
+            strokeWidth = 6.dp
+        )
+        Text(
+            text = "$progress%",
+            style = MaterialTheme.typography.body2
+        )
+    }
 }
 
 @Composable
@@ -242,114 +315,24 @@ fun UrlListColumn(
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
     updateIndividualIsEdit: (Boolean, String) -> Unit,
-    onRemoveUrl: (String) -> Unit
+    onRemoveUrl: (String) -> Unit,
+    onIndividualErrorChange: (String?) -> Unit
 ) {
     urlList.entries.forEachIndexed { index, entry ->
-        val key = entry.key
-        val value = entry.value
-        var isChecked by remember { mutableStateOf(value.isEdit) }
-        var text by remember { mutableStateOf("") }
+        UrlListItem(
+            url = entry.key,
+            params = entry.value,
+            isDuration = isDuration,
+            timeInput = timeInput,
+            countInput = countInput,
+            updateIndividualCount = updateIndividualCount,
+            updateIndividualTime = updateIndividualTime,
+            updateIndividualUnformattedTime = updateIndividualUnformattedTime,
+            updateIndividualIsEdit = updateIndividualIsEdit,
+            onRemoveUrl = onRemoveUrl,
+            onIndividualErrorChange = onIndividualErrorChange
+        )
 
-        var individualDurationErrorMessage by remember { mutableStateOf<String?>(null) }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().height(60.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(key, modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(text = "Edit", modifier = Modifier.weight(0.1f))
-            Checkbox(
-                modifier = Modifier.weight(0.1f),
-                checked = isChecked,
-                onCheckedChange = { item ->
-                    isChecked = item
-                    updateIndividualIsEdit(item, key)
-                    if (isDuration) {
-                        handleIndividualTimeInputChange(
-                            timeInput,
-                            key,
-                            updateTime = updateIndividualTime,
-                            updateUnformattedTime = updateIndividualUnformattedTime,
-                            updateErrorMessage = { individualDurationErrorMessage = it })
-                    } else {
-                        handleIndividualTestCountChange(
-                            input = countInput,
-                            key = key,
-                            updateCount = updateIndividualCount,
-                            updateErrorMessage = { individualDurationErrorMessage = it }
-                        )
-                    }
-                })
-            if (isChecked) {
-                if (isDuration) {
-                    // Duration input field
-                    text = entry.value.unformattedDurationValue
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { input ->
-                            handleIndividualTimeInputChange(
-                                input = input,
-                                key = key,
-                                updateTime = updateIndividualTime,
-                                updateUnformattedTime = updateIndividualUnformattedTime,
-                                updateErrorMessage = { individualDurationErrorMessage = it }
-                            )
-                        },
-                        label = {
-                            if (individualDurationErrorMessage != null) {
-                                Text(individualDurationErrorMessage.toString())
-                            } else {
-                                Text("Enter time (MM:SS)")
-                            }
-                        },
-                        singleLine = true,
-                        isError = individualDurationErrorMessage != null,
-                        modifier = Modifier.width(250.dp)
-
-                    )
-                } else {
-                    // Quantity input field
-                    text = if (entry.value.countValue == 0L) "" else entry.value.countValue.toString()
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { input ->
-                            handleIndividualTestCountChange(
-                                input = input,
-                                key = key,
-                                updateCount = updateIndividualCount,
-                                updateErrorMessage = { individualDurationErrorMessage = it }
-                            )
-                        },
-                        label = {
-                            if (individualDurationErrorMessage != null) {
-                                Text(individualDurationErrorMessage.toString())
-                            } else {
-                                Text("Enter the number of requests")
-                            }
-                        },
-                        singleLine = true,
-                        isError = individualDurationErrorMessage != null,
-                        modifier = Modifier.width(250.dp)
-                    )
-                }
-            } else {
-                Spacer(modifier = Modifier.width(250.dp))
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-
-            IconButton(
-                onClick = { onRemoveUrl(key) },
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Remove",
-                    tint = MaterialTheme.colors.error
-                )
-            }
-        }
         if (index != urlList.size - 1) {
             Divider(
                 modifier = Modifier.padding(vertical = 4.dp),
@@ -357,6 +340,159 @@ fun UrlListColumn(
                 thickness = 1.dp
             )
         }
+    }
+}
+
+@Composable
+private fun UrlListItem(
+    url: String,
+    params: TestCaseParams,
+    isDuration: Boolean,
+    timeInput: String,
+    countInput: String,
+    updateIndividualCount: (Long, String) -> Unit,
+    updateIndividualTime: (Long, String) -> Unit,
+    updateIndividualUnformattedTime: (String, String) -> Unit,
+    updateIndividualIsEdit: (Boolean, String) -> Unit,
+    onRemoveUrl: (String) -> Unit,
+    onIndividualErrorChange: (String?) -> Unit
+) {
+    var isChecked by remember { mutableStateOf(params.isEdit) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(url, modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(text = "Edit", modifier = Modifier.weight(0.1f))
+        Checkbox(
+            modifier = Modifier.weight(0.1f),
+            checked = isChecked,
+            onCheckedChange = { checked ->
+                isChecked = checked
+                updateIndividualIsEdit(checked, url)
+                syncIndividualValue(
+                    isDuration, timeInput, countInput, url, updateIndividualTime,
+                    updateIndividualUnformattedTime, updateIndividualCount,
+                    onIndividualErrorChange
+                )
+            }
+        )
+
+        Box(modifier = Modifier.width(150.dp)) {
+            if (isChecked) {
+                IndividualInputField(
+                    isDuration = isDuration,
+                    params = params,
+                    url = url,
+                    updateIndividualTime = updateIndividualTime,
+                    updateIndividualUnformattedTime = updateIndividualUnformattedTime,
+                    updateIndividualCount = updateIndividualCount,
+                    onErrorChange = onIndividualErrorChange
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+        RemoveButton(onClick = { onRemoveUrl(url) })
+    }
+}
+
+@Composable
+private fun IndividualInputField(
+    isDuration: Boolean,
+    params: TestCaseParams,
+    url: String,
+    updateIndividualTime: (Long, String) -> Unit,
+    updateIndividualUnformattedTime: (String, String) -> Unit,
+    updateIndividualCount: (Long, String) -> Unit,
+    onErrorChange: (String?) -> Unit
+) {
+    val (value, hint, onValueChange) = if (isDuration) {
+        Triple(
+            params.unformattedDurationValue,
+            "Enter time (MM:SS)",
+            { input: String ->
+                handleIndividualTimeInputChange(
+                    input,
+                    url,
+                    updateIndividualTime,
+                    updateIndividualUnformattedTime,
+                    onErrorChange
+                )
+            }
+        )
+    } else {
+        Triple(
+            if (params.countValue == 0L) "" else params.countValue.toString(),
+            "Enter the number of requests",
+            { input: String ->
+                handleIndividualTestCountChange(input, url, updateIndividualCount, onErrorChange)
+            }
+        )
+    }
+
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        cursorBrush = SolidColor(MaterialTheme.colors.primary),
+        modifier = Modifier
+            .fillMaxSize()
+            .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        decorationBox = { innerTextField ->
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = hint,
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.body2
+                    )
+                }
+                innerTextField()
+            }
+        }
+    )
+}
+
+@Composable
+private fun RemoveButton(onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
+        Icon(
+            imageVector = Icons.Filled.Close,
+            contentDescription = "Remove",
+            tint = MaterialTheme.colors.error
+        )
+    }
+}
+
+private fun syncIndividualValue(
+    isDuration: Boolean,
+    timeInput: String,
+    countInput: String,
+    url: String,
+    updateIndividualTime: (Long, String) -> Unit,
+    updateIndividualUnformattedTime: (String, String) -> Unit,
+    updateIndividualCount: (Long, String) -> Unit,
+    onErrorChange: (String?) -> Unit
+) {
+    if (isDuration) {
+        handleIndividualTimeInputChange(
+            timeInput,
+            url,
+            updateIndividualTime,
+            updateIndividualUnformattedTime,
+            onErrorChange
+        )
+    } else {
+        handleIndividualTestCountChange(countInput, url, updateIndividualCount, onErrorChange)
     }
 }
 
@@ -369,40 +505,42 @@ fun UrlInput(
     onImport: () -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .padding(top = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedTextField(
-            modifier = Modifier.weight(1f),
+        BasicTextField(
             value = url,
-            onValueChange = { onUrlChange(it) },
+            onValueChange = onUrlChange,
             singleLine = true,
-            isError = urlErrorMessage != null,
-            label = {
-                if (urlErrorMessage != null) {
-                    Text(urlErrorMessage)
-                } else {
-                    Text("Enter URL")
+            cursorBrush = SolidColor(MaterialTheme.colors.primary),
+            modifier = Modifier
+                .weight(1f)
+                .height(36.dp)
+                .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (url.isEmpty()) {
+                        Text(
+                            text = "Enter URL",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.body2
+                        )
+                    }
+                    innerTextField()
                 }
             }
         )
-
         Spacer(modifier = Modifier.width(16.dp))
-
-        Button(
-            onClick = onAddUrl,
-            enabled = url.isNotEmpty() && urlErrorMessage == null
-        ) {
+        Button(onClick = onAddUrl, enabled = url.isNotEmpty() && urlErrorMessage == null) {
             Text("Add URL")
         }
-
         Spacer(modifier = Modifier.width(16.dp))
-
-        Button(
-            onClick = onImport
-        ) {
+        Button(onClick = onImport) {
             Text("Import..")
         }
     }
@@ -419,51 +557,62 @@ fun DurationOrCountSelector(
     countInput: String,
     onCountInputChange: (String) -> Unit
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        RadioButton(
-            selected = isDuration,
-            onClick = onDurationSelected
+        ModeSelectionRow(
+            isDuration = isDuration,
+            onDurationSelected = onDurationSelected,
+            onCountSelected = onCountSelected
         )
+
+        val (value, hint, onChange) = if (isDuration) {
+            Triple(timeInput, "Enter time (MM:SS)", onTimeInputChange)
+        } else {
+            Triple(countInput, "Enter the number of requests", onCountInputChange)
+        }
+
+        BasicTextField(
+            value = value,
+            onValueChange = onChange,
+            singleLine = true,
+            cursorBrush = SolidColor(MaterialTheme.colors.primary),
+            modifier = Modifier
+                .width(200.dp)
+                .height(36.dp)
+                .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = hint,
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.body2
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ModeSelectionRow(
+    isDuration: Boolean,
+    onDurationSelected: () -> Unit,
+    onCountSelected: () -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        RadioButton(selected = isDuration, onClick = onDurationSelected)
         Text("Duration", modifier = Modifier.padding(start = 8.dp))
         Spacer(modifier = Modifier.width(16.dp))
-        RadioButton(
-            selected = !isDuration,
-            onClick = onCountSelected
-        )
+        RadioButton(selected = !isDuration, onClick = onCountSelected)
         Text("Count", modifier = Modifier.padding(start = 8.dp))
-    }
-    if (isDuration) {
-        // Duration input field
-        OutlinedTextField(
-            value = timeInput,
-            onValueChange = { onTimeInputChange(it) },
-            label = {
-                if (durationErrorMessage != null) {
-                    Text(durationErrorMessage)
-                } else {
-                    Text("Enter time (MM:SS)")
-                }
-            },
-            singleLine = true,
-            isError = durationErrorMessage != null,
-        )
-    } else {
-        // Quantity input field
-        OutlinedTextField(
-            value = countInput,
-            onValueChange = { onCountInputChange(it) },
-            label = {
-                if (durationErrorMessage != null) {
-                    Text(durationErrorMessage)
-                } else {
-                    Text("Enter the number of requests")
-                }
-            },
-            singleLine = true,
-            isError = durationErrorMessage != null,
-        )
     }
 }
 
@@ -476,41 +625,44 @@ fun FlowControlButtons(
     updateShowDialog: (Boolean) -> Unit,
     updateDialogMessage: (String) -> Unit
 ) {
-
     val status by testCase.testCaseState.status.collectAsState()
+    val isRunning = status == StatusCode.RUNNING
+    val canLaunch = status == StatusCode.FINISHED || status == StatusCode.CREATED
+    val canViewResult = status == StatusCode.FINISHED
 
-    Button(
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = Color(0xFF41C300)  // Color green
-        ),
-        onClick = onLaunchTest,
-        enabled = status == StatusCode.FINISHED || status == StatusCode.CREATED
-    ) {
-        Text("Launch")
-    }
-    Spacer(modifier = Modifier.width(16.dp))
-
-    Button(
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = MaterialTheme.colors.error  // Color Red
-        ),
-        onClick = {
+    Row {
+        LaunchButton(enabled = canLaunch, onClick = onLaunchTest)
+        Spacer(modifier = Modifier.width(16.dp))
+        CancelButton(enabled = isRunning) {
             cancelFlag.set(true)
             updateDialogMessage("Test canceled by user!")
             updateShowDialog(true)
-        },
-        enabled = testCase.testCaseState.getStatus() == StatusCode.RUNNING
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Button(onClick = onNavigate, enabled = canViewResult) {
+            Text("Get Result")
+        }
+    }
+}
+
+@Composable
+private fun LaunchButton(enabled: Boolean, onClick: () -> Unit) {
+    Button(
+        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF41C300)),
+        onClick = onClick,
+        enabled = enabled
+    ) {
+        Text("Launch")
+    }
+}
+
+@Composable
+private fun CancelButton(enabled: Boolean, onClick: () -> Unit) {
+    Button(
+        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.error),
+        onClick = onClick,
+        enabled = enabled
     ) {
         Text("Cancel")
-    }
-    Spacer(modifier = Modifier.width(16.dp))
-
-    Button(
-        onClick = {
-            onNavigate()
-        },
-        enabled = testCase.testCaseState.getStatus() == StatusCode.FINISHED
-    ) {
-        Text("Get Result")
     }
 }

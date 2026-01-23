@@ -7,12 +7,17 @@ import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.entity.TestCaseResult
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.runtime.*
+
 
 @Composable
 fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
@@ -107,7 +112,7 @@ fun buildTopUrls(resultData: List<TestCaseResult>) {
 fun tableCell(text: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .border(1.dp, Color.Gray)
+//            .border(1.dp, Color.Gray)
             .padding(8.dp)
     ) {
         Text(text, style = MaterialTheme.typography.body1)
@@ -116,11 +121,16 @@ fun tableCell(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun simpleTable(resultData: List<TestCaseResult>) {
+
+    // fold/unfold state per url
+    val expanded = remember { mutableStateMapOf<String, Boolean>() }
+
     // Headers
     Row(modifier = Modifier.fillMaxWidth().background(Color.LightGray)) {
+        tableCell("", modifier = Modifier.weight(0.4f)) // колонка под кнопку
         tableCell("URL", modifier = Modifier.weight(3f))
-        tableCell("Total request", modifier = Modifier.weight(1f))
-        tableCell("Error count", modifier = Modifier.weight(1f))
+        tableCell("Total", modifier = Modifier.weight(1f))
+        tableCell("Errors", modifier = Modifier.weight(1f))
         tableCell("Min", modifier = Modifier.weight(1f))
         tableCell("Max", modifier = Modifier.weight(1f))
         tableCell("Avg", modifier = Modifier.weight(1f))
@@ -129,11 +139,25 @@ fun simpleTable(resultData: List<TestCaseResult>) {
         tableCell("P99", modifier = Modifier.weight(1f))
     }
 
-    // Data
     resultData.forEachIndexed { index, row ->
         val rowColor = if (index % 2 == 0) Color(0xFFE0E0E0) else Color.White
+        val isExpanded = expanded[row.url] == true
 
+        // Main row
         Row(modifier = Modifier.fillMaxWidth().background(rowColor)) {
+
+            // Expand/collapse button
+            Box(
+                modifier = Modifier
+                    .weight(0.4f),
+//                    .border(1.dp, Color.Gray),
+                contentAlignment = Alignment.Center
+            ) {
+                TextButton(onClick = { expanded[row.url] = !isExpanded }) {
+                    Text(if (isExpanded) "−" else "+")
+                }
+            }
+
             tableCell(row.url, modifier = Modifier.weight(3f))
             tableCell("${row.totalRequestCount}", modifier = Modifier.weight(1f))
             tableCell("${row.errorRequestCount}", modifier = Modifier.weight(1f))
@@ -144,5 +168,37 @@ fun simpleTable(resultData: List<TestCaseResult>) {
             tableCell("${row.p95}", modifier = Modifier.weight(1f))
             tableCell("${row.p99}", modifier = Modifier.weight(1f))
         }
+
+        // Expanded details row (your new metrics)
+        if (isExpanded) {
+            Row(modifier = Modifier.fillMaxWidth().background(rowColor)) {
+                // пустая колонка под кнопку
+                tableCell("", modifier = Modifier.weight(0.4f))
+
+                // один широкий cell на всю остальную ширину
+                Box(
+                    modifier = Modifier
+                        .weight(3f + 1f + 1f + 1f + 1f + 1f + 1f + 1f + 1f) // сумма весов остальных колонок
+//                        .border(1.dp, Color.Gray)
+                        .padding(8.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Network breakdown (avg):", style = MaterialTheme.typography.subtitle2)
+
+                        // helper чтобы красиво печатать null
+                        fun fmt(v: Long?) = v?.let { "${it} ms" } ?: "—"
+
+                        Text("DNS: ${fmt(row.dnsMs)}")
+                        Text("Connect: ${fmt(row.connectMs)}")
+                        Text("TLS: ${fmt(row.tlsMs)}")
+                        Text("Req headers: ${fmt(row.requestHeadersMs)}")
+                        Text("Req body: ${fmt(row.requestBodyMs)}")
+                        Text("Resp headers: ${fmt(row.responseHeadersMs)}")
+                        Text("Resp body: ${fmt(row.responseBodyMs)}")
+                    }
+                }
+            }
+        }
     }
 }
+
