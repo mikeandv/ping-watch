@@ -1,6 +1,5 @@
 package com.github.mikeandv.pingwatch.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,6 +7,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,8 +15,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.StatusCode
+import com.github.mikeandv.pingwatch.entity.ExecutionMode
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
+import com.github.mikeandv.pingwatch.entity.TestCaseSettings
 import com.github.mikeandv.pingwatch.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
 import java.util.concurrent.atomic.AtomicBoolean
@@ -28,6 +30,7 @@ fun MainScreen(
     viewModel: MainScreenViewModel,
     onNavigate: () -> Unit
 ) {
+    val testCaseSettings by viewModel.testCaseSettings.collectAsState()
     val testCase by viewModel.testCase.collectAsState()
     val urlList by viewModel.urlList.collectAsState()
     val progress by viewModel.progress.collectAsState()
@@ -41,6 +44,7 @@ fun MainScreen(
 
     var url by remember { mutableStateOf("") }
     var individualErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val cancelFlag = remember { AtomicBoolean(false) }
 
@@ -83,7 +87,8 @@ fun MainScreen(
                     onNavigate = onNavigate,
                     cancelFlag = cancelFlag,
                     updateShowDialog = viewModel::updateShowDialog,
-                    updateDialogMessage = viewModel::updateDialogErrorMessage
+                    updateDialogMessage = viewModel::updateDialogErrorMessage,
+                    onSettingsClick = { showSettingsDialog = true }
                 )
             }
 
@@ -164,6 +169,17 @@ fun MainScreen(
             showDialog = showDialog,
             message = dialogErrorMessage,
             onDismiss = { viewModel.updateShowDialog(false) }
+        )
+
+        SettingsDialog(
+            showDialog = showSettingsDialog,
+            settings = testCaseSettings,
+            onDismiss = { showSettingsDialog = false },
+            onSave = { newSettings ->
+                viewModel.updateTestCaseSettings(newSettings)
+                viewModel.updateTestCase(testCase.copy(settings = newSettings))
+                showSettingsDialog = false
+            }
         )
     }
 }
@@ -623,7 +639,8 @@ fun FlowControlButtons(
     onNavigate: () -> Unit,
     cancelFlag: AtomicBoolean,
     updateShowDialog: (Boolean) -> Unit,
-    updateDialogMessage: (String) -> Unit
+    updateDialogMessage: (String) -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val status by testCase.testCaseState.status.collectAsState()
     val isRunning = status == StatusCode.RUNNING
@@ -632,7 +649,7 @@ fun FlowControlButtons(
 
     Row {
         LaunchButton(enabled = canLaunch, onClick = onLaunchTest)
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         CancelButton(enabled = isRunning) {
             cancelFlag.set(true)
             updateDialogMessage("Test canceled by user!")
@@ -641,6 +658,14 @@ fun FlowControlButtons(
         Spacer(modifier = Modifier.width(16.dp))
         Button(onClick = onNavigate, enabled = canViewResult) {
             Text("Get Result")
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        IconButton(onClick = onSettingsClick, enabled = canLaunch) {
+            Icon(
+                imageVector = Icons.Filled.Settings,
+                contentDescription = "Settings",
+                tint = if (canLaunch) MaterialTheme.colors.primary else Color.Gray
+            )
         }
     }
 }
@@ -664,5 +689,94 @@ private fun CancelButton(enabled: Boolean, onClick: () -> Unit) {
         enabled = enabled
     ) {
         Text("Cancel")
+    }
+}
+
+@Composable
+private fun SettingsDialog(
+    showDialog: Boolean,
+    settings: TestCaseSettings,
+    onDismiss: () -> Unit,
+    onSave: (TestCaseSettings) -> Unit
+) {
+    if (showDialog) {
+        var selectedMode by remember(settings) { mutableStateOf(settings.executionMode) }
+        var parallelismInput by remember(settings) { mutableStateOf(settings.parallelism.toString()) }
+        var parallelismError by remember { mutableStateOf<String?>(null) }
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Settings") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text("Execution Mode", style = MaterialTheme.typography.subtitle1)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = selectedMode == ExecutionMode.SEQUENTIAL,
+                            onClick = { selectedMode = ExecutionMode.SEQUENTIAL }
+                        )
+                        Text("Sequential", modifier = Modifier.padding(start = 8.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        RadioButton(
+                            selected = selectedMode == ExecutionMode.PARALLEL,
+                            onClick = { selectedMode = ExecutionMode.PARALLEL }
+                        )
+                        Text("Parallel", modifier = Modifier.padding(start = 8.dp))
+                    }
+
+                    Text("Parallelism", style = MaterialTheme.typography.subtitle1)
+                    BasicTextField(
+                        value = parallelismInput,
+                        onValueChange = { input ->
+                            parallelismInput = input
+                            val value = input.toIntOrNull()
+                            parallelismError = when {
+                                input.isEmpty() -> "Parallelism is required"
+                                value == null -> "Must be a number"
+                                value < 1 -> "Must be at least 1"
+                                value > 64 -> "Must be at most 64"
+                                else -> null
+                            }
+                        },
+                        singleLine = true,
+                        cursorBrush = SolidColor(MaterialTheme.colors.primary),
+                        modifier = Modifier
+                            .width(100.dp)
+                            .height(36.dp)
+                            .border(
+                                1.dp,
+                                if (parallelismError != null) MaterialTheme.colors.error else Color.Gray,
+                                RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                    parallelismError?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colors.error,
+                            style = MaterialTheme.typography.caption
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val parallelism = parallelismInput.toIntOrNull() ?: settings.parallelism
+                        onSave(settings.copy(executionMode = selectedMode, parallelism = parallelism))
+                    },
+                    enabled = parallelismError == null
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                Button(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

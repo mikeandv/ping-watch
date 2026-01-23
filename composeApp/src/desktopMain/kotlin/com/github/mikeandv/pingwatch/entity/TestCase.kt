@@ -3,17 +3,16 @@ package com.github.mikeandv.pingwatch.entity
 import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.processor.runR
 import kotlinx.coroutines.flow.*
-import okhttp3.OkHttpClient
 
 class TestCase(
-    val okHttpClient: OkHttpClient,
     val urls: Map<String, TestCaseParams>,
     val runType: RunType,
-    val executionMode: ExecutionMode,
-    val parallelism: Int
+    val settings: TestCaseSettings,
+    val testCaseState: TestCaseState = TestCaseState(),
+    testCaseResult: List<TestCaseResult>? = null
 ) {
-    val testCaseState: TestCaseState = TestCaseState()
-    lateinit var testCaseResult: List<TestCaseResult>
+    var testCaseResult: List<TestCaseResult> = testCaseResult ?: emptyList()
+        private set
 
     val events = MutableSharedFlow<TestEvent>(
         extraBufferCapacity = 256
@@ -72,6 +71,15 @@ class TestCase(
         }.distinctUntilChanged()
     }
 
+    fun copy(
+        urls: Map<String, TestCaseParams> = this.urls,
+        runType: RunType = this.runType,
+        settings: TestCaseSettings = this.settings,
+        testCaseState: TestCaseState = this.testCaseState,
+        testCaseResult: List<TestCaseResult>? = this.testCaseResult
+    ): TestCase {
+        return TestCase(urls, runType, settings, testCaseState, testCaseResult)
+    }
 
     override fun toString(): String {
         return "TestCase(urls=$urls, runType=$runType, testCaseState=$testCaseState)"

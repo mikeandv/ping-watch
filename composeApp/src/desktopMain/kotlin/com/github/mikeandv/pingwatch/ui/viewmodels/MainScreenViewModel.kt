@@ -2,19 +2,21 @@ package com.github.mikeandv.pingwatch.ui.viewmodels
 
 import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.convertMillisToTime
-import com.github.mikeandv.pingwatch.entity.ExecutionMode
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
+import com.github.mikeandv.pingwatch.entity.TestCaseSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import okhttp3.OkHttpClient
 
 class MainScreenViewModel {
+
+    private val _testCaseSettings = MutableStateFlow(TestCaseSettings.createDefaultSettings())
+    val testCaseSettings: StateFlow<TestCaseSettings> = _testCaseSettings
 
     private val _urlList = MutableStateFlow(emptyMap<String, TestCaseParams>())
     val urlList: StateFlow<Map<String, TestCaseParams>> = _urlList
 
-    private val _testCase = MutableStateFlow(TestCase(OkHttpClient(), emptyMap(), RunType.COUNT, ExecutionMode.PARALLEL, 8))
+    private val _testCase = MutableStateFlow(TestCase(emptyMap(), RunType.COUNT, testCaseSettings.value))
     val testCase: StateFlow<TestCase> = _testCase
 
     private val _progress = MutableStateFlow(0L)
@@ -140,6 +142,10 @@ class MainScreenViewModel {
 
     fun updateShowDialog(newShowDialog: Boolean) {
         _showDialog.value = newShowDialog
+    }
+
+    fun updateTestCaseSettings(newTestCaseSettings: TestCaseSettings) {
+        _testCaseSettings.value = newTestCaseSettings
     }
 }
 

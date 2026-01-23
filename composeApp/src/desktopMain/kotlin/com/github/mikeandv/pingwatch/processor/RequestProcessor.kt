@@ -6,6 +6,7 @@ import com.github.mikeandv.pingwatch.entity.ResponseData
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseResult
 import com.github.mikeandv.pingwatch.entity.TestEvent
+import com.github.mikeandv.pingwatch.entity.UrlAvgMetrics
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -53,11 +54,7 @@ suspend fun measureResponseTimeV2(
 }
 
 
-suspend fun runR(
-    testCase: TestCase,
-    cancelFlag: () -> Boolean
-): List<TestCaseResult> {
-
+suspend fun runR(testCase: TestCase, cancelFlag: () -> Boolean): List<TestCaseResult> {
     testCase.events.emit(
         TestEvent.Started(
             totalRequests = if (testCase.runType == RunType.COUNT)
@@ -68,6 +65,7 @@ suspend fun runR(
             else null
         )
     )
+    testCase.settings.agg.clear()
 
     val rawResult = when (testCase.runType) {
         RunType.COUNT -> runByCount(testCase, cancelFlag)
@@ -75,84 +73,80 @@ suspend fun runR(
     }
 
     testCase.events.emit(TestEvent.Finished)
-    return TestCaseResult.create(rawResult)
+    val metricsByUrl: Map<String, UrlAvgMetrics> = testCase.settings.agg.snapshot()
+    return TestCaseResult.create(rawResult, metricsByUrl)
 }
 
 
-suspend fun runByCount(
-    testCase: TestCase,
-    cancelFlag: () -> Boolean
-): List<ResponseData> = when (testCase.executionMode) {
+suspend fun runByCount(testCase: TestCase, cancelFlag: () -> Boolean): List<ResponseData> =
+    when (testCase.settings.executionMode) {
 
-    ExecutionMode.SEQUENTIAL -> {
-        val result = mutableListOf<ResponseData>()
+        ExecutionMode.SEQUENTIAL -> {
+            val result = mutableListOf<ResponseData>()
 
-        for ((url, param) in testCase.urls) {
-            repeat(param.countValue.toInt()) {
-                if (cancelFlag()) return result
-                result += measureResponseTimeV2(
-                    testCase.okHttpClient,
-                    url,
-                    testCase.events
-                )
-            }
-        }
-        result
-    }
-
-    ExecutionMode.PARALLEL -> coroutineScope {
-        val dispatcher = Dispatchers.IO.limitedParallelism(testCase.parallelism)
-
-        val queue = Channel<String>(capacity = testCase.parallelism * 4)
-        val results = ConcurrentLinkedQueue<ResponseData>()
-
-        val producer = launch {
-            try {
-                for ((url, param) in testCase.urls) {
-                    repeat(param.countValue.toInt()) {
-                        if (!isActive || cancelFlag()) return@launch
-                        queue.send(url)
-                    }
-                }
-            } finally {
-                queue.close()
-            }
-        }
-
-        val workers = List(testCase.parallelism) {
-            launch(dispatcher) {
-                for (url in queue) {
-                    if (!isActive || cancelFlag()) break
-
-                    val response = measureResponseTimeV2(
-                        testCase.okHttpClient,
+            for ((url, param) in testCase.urls) {
+                repeat(param.countValue.toInt()) {
+                    if (cancelFlag()) return result
+                    result += measureResponseTimeV2(
+                        testCase.settings.okHttpClient,
                         url,
                         testCase.events
                     )
-
-                    results.add(response)
                 }
             }
+            result
         }
 
-        try {
-            producer.join()
-            workers.joinAll()
-            results.toList()
-        } catch (e: CancellationException) {
-            producer.cancel()
-            workers.forEach { it.cancel() }
-            results.toList()
+        ExecutionMode.PARALLEL -> coroutineScope {
+            val dispatcher = Dispatchers.IO.limitedParallelism(testCase.settings.parallelism)
+
+            val queue = Channel<String>(capacity = testCase.settings.parallelism * 4)
+            val results = ConcurrentLinkedQueue<ResponseData>()
+
+            val producer = launch {
+                try {
+                    for ((url, param) in testCase.urls) {
+                        repeat(param.countValue.toInt()) {
+                            if (!isActive || cancelFlag()) return@launch
+                            queue.send(url)
+                        }
+                    }
+                } finally {
+                    queue.close()
+                }
+            }
+
+            val workers = List(testCase.settings.parallelism) {
+                launch(dispatcher) {
+                    for (url in queue) {
+                        if (!isActive || cancelFlag()) break
+
+                        val response = measureResponseTimeV2(
+                            testCase.settings.okHttpClient,
+                            url,
+                            testCase.events
+                        )
+
+                        results.add(response)
+                    }
+                }
+            }
+
+            try {
+                producer.join()
+                workers.joinAll()
+                results.toList()
+            } catch (e: CancellationException) {
+                producer.cancel()
+                workers.forEach { it.cancel() }
+                results.toList()
+            }
         }
     }
-}
 
 
-suspend fun runByDuration(
-    testCase: TestCase,
-    cancelFlag: () -> Boolean
-): List<ResponseData> {
-    return when (testCase.executionMode) {
+suspend fun runByDuration(testCase: TestCase, cancelFlag: () -> Boolean): List<ResponseData> {
+    return when (testCase.settings.executionMode) {
         ExecutionMode.SEQUENTIAL -> {
             val result = mutableListOf<ResponseData>()
             val start = System.currentTimeMillis()
@@ -161,7 +155,7 @@ suspend fun runByDuration(
                 for ((url, _) in testCase.urls) {
                     if (cancelFlag()) return result
                     result += measureResponseTimeV2(
-                        testCase.okHttpClient,
+                        testCase.settings.okHttpClient,
                         url,
                         testCase.events
                     )
@@ -172,7 +166,7 @@ suspend fun runByDuration(
 
         ExecutionMode.PARALLEL -> coroutineScope {
 
-            val dispatcher = Dispatchers.IO.limitedParallelism(testCase.parallelism)
+            val dispatcher = Dispatchers.IO.limitedParallelism(testCase.settings.parallelism)
             val result = ConcurrentLinkedQueue<ResponseData>()
             val start = System.currentTimeMillis()
 
@@ -182,7 +176,7 @@ suspend fun runByDuration(
                         if (cancelFlag()) break
                         result.add(
                             measureResponseTimeV2(
-                                testCase.okHttpClient,
+                                testCase.settings.okHttpClient,
                                 url,
                                 testCase.events
                             )

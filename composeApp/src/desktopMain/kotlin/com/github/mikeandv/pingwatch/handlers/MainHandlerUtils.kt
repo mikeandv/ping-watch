@@ -122,11 +122,11 @@ fun buildTestCase(
     isDuration: Boolean
 ): TestCase {
     return TestCase(
-        original.okHttpClient,
         urlList,
         if (isDuration) RunType.DURATION else RunType.COUNT,
-        original.executionMode,
-        original.parallelism
+        original.settings,
+        original.testCaseState,
+        original.testCaseResult
     )
 }
 
