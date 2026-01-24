@@ -112,13 +112,11 @@ private fun SettingsIntField(
                 )
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         )
-        error?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colors.error,
-                style = MaterialTheme.typography.caption
-            )
-        }
+        Text(
+            text = error ?: " ",
+            color = if (error != null) MaterialTheme.colors.error else Color.Transparent,
+            style = MaterialTheme.typography.caption
+        )
     }
 }
 
@@ -142,18 +140,18 @@ private fun FileExtensionsSelector(
                             onSelectionChange(
                                 if (checked) selectedExtensions + ext else selectedExtensions - ext
                             )
-                        }
+                        },
+                        //TODO remove when could handle other file extensions
+                        enabled = ext == "txt"
                     )
                     Text(ext)
                 }
             }
         }
-        if (selectedExtensions.isEmpty()) {
-            Text(
-                text = "At least one extension required",
-                color = MaterialTheme.colors.error,
-                style = MaterialTheme.typography.caption
-            )
-        }
+        Text(
+            text = if (selectedExtensions.isEmpty()) "At least one extension required" else " ",
+            color = if (selectedExtensions.isEmpty()) MaterialTheme.colors.error else Color.Transparent,
+            style = MaterialTheme.typography.caption
+        )
     }
 }

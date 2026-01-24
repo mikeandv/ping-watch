@@ -189,7 +189,7 @@ private fun IndividualInputField(
     } else {
         Triple(
             if (params.countValue == 0L) "" else params.countValue.toString(),
-            "Enter the number of requests",
+            "Enter the number",
             { input: String ->
                 handleIndividualTestCountChange(input, url, updateIndividualCount, onErrorChange)
             }

@@ -38,7 +38,7 @@ fun DurationOrCountSelector(
         val (value, hint, onChange) = if (isDuration) {
             Triple(timeInput, "Enter time (MM:SS)", onTimeInputChange)
         } else {
-            Triple(countInput, "Enter the number of requests", onCountInputChange)
+            Triple(countInput, "Enter the number", onCountInputChange)
         }
 
         BasicTextField(

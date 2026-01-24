@@ -14,7 +14,7 @@ class TestCaseSettings private constructor(
     val okHttpClient: OkHttpClient
 ) {
     companion object {
-        val DEFAULT_FILE_EXTENSIONS = listOf("txt", "json")
+        val DEFAULT_FILE_EXTENSIONS = listOf("txt")
 
         fun createDefaultSettings(): TestCaseSettings {
             val agg = UrlAvgAggregator()
