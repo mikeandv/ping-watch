@@ -104,7 +104,6 @@ fun MainScreen(
                         url,
                         URL_PATTERN,
                         viewModel::updateUrlList,
-                        urlList,
                         { url = "" },
                         viewModel::updateUrlErrorMessage
                     )
@@ -147,7 +146,8 @@ fun MainScreen(
                     )
                 },
                 durationErrorMessage = durationErrorMessage,
-                progress = progress
+                progress = progress,
+                isDurationCountEnabled = urlList.isNotEmpty()
             )
 
             UrlListSection(
@@ -200,7 +200,8 @@ private fun ParametersSection(
     onTimeInputChange: (String) -> Unit,
     onCountInputChange: (String) -> Unit,
     durationErrorMessage: String?,
-    progress: Long
+    progress: Long,
+    isDurationCountEnabled: Boolean
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -225,7 +226,8 @@ private fun ParametersSection(
                 timeInput = timeInput,
                 onTimeInputChange = onTimeInputChange,
                 durationErrorMessage = durationErrorMessage,
-                onCountInputChange = onCountInputChange
+                onCountInputChange = onCountInputChange,
+                enabled = isDurationCountEnabled
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -571,7 +573,8 @@ fun DurationOrCountSelector(
     onTimeInputChange: (String) -> Unit,
     durationErrorMessage: String?,
     countInput: String,
-    onCountInputChange: (String) -> Unit
+    onCountInputChange: (String) -> Unit,
+    enabled: Boolean = true
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -579,7 +582,8 @@ fun DurationOrCountSelector(
         ModeSelectionRow(
             isDuration = isDuration,
             onDurationSelected = onDurationSelected,
-            onCountSelected = onCountSelected
+            onCountSelected = onCountSelected,
+            enabled = enabled
         )
 
         val (value, hint, onChange) = if (isDuration) {
@@ -592,11 +596,12 @@ fun DurationOrCountSelector(
             value = value,
             onValueChange = onChange,
             singleLine = true,
+            enabled = enabled,
             cursorBrush = SolidColor(MaterialTheme.colors.primary),
             modifier = Modifier
                 .width(200.dp)
                 .height(36.dp)
-                .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+                .border(1.dp, if (enabled) Color.Gray else Color.LightGray, RoundedCornerShape(4.dp))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             decorationBox = { innerTextField ->
                 Box(
@@ -621,14 +626,23 @@ fun DurationOrCountSelector(
 private fun ModeSelectionRow(
     isDuration: Boolean,
     onDurationSelected: () -> Unit,
-    onCountSelected: () -> Unit
+    onCountSelected: () -> Unit,
+    enabled: Boolean = true
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected = isDuration, onClick = onDurationSelected)
-        Text("Duration", modifier = Modifier.padding(start = 8.dp))
+        RadioButton(selected = isDuration, onClick = onDurationSelected, enabled = enabled)
+        Text(
+            "Duration",
+            modifier = Modifier.padding(start = 8.dp),
+            color = if (enabled) Color.Unspecified else Color.Gray
+        )
         Spacer(modifier = Modifier.width(16.dp))
-        RadioButton(selected = !isDuration, onClick = onCountSelected)
-        Text("Count", modifier = Modifier.padding(start = 8.dp))
+        RadioButton(selected = !isDuration, onClick = onCountSelected, enabled = enabled)
+        Text(
+            "Count",
+            modifier = Modifier.padding(start = 8.dp),
+            color = if (enabled) Color.Unspecified else Color.Gray
+        )
     }
 }
 
@@ -730,15 +744,11 @@ private fun SettingsDialog(
                     BasicTextField(
                         value = parallelismInput,
                         onValueChange = { input ->
-                            parallelismInput = input
-                            val value = input.toIntOrNull()
-                            parallelismError = when {
-                                input.isEmpty() -> "Parallelism is required"
-                                value == null -> "Must be a number"
-                                value < 1 -> "Must be at least 1"
-                                value > 64 -> "Must be at most 64"
-                                else -> null
-                            }
+                            handleParallelismInputChange(
+                                input,
+                                { parallelismInput = it },
+                                { parallelismError = it }
+                            )
                         },
                         singleLine = true,
                         cursorBrush = SolidColor(MaterialTheme.colors.primary),

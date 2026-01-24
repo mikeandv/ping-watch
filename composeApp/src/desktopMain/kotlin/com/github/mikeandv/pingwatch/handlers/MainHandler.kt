@@ -1,13 +1,19 @@
 package com.github.mikeandv.pingwatch.handlers
 
 import com.github.mikeandv.pingwatch.entity.CountInputResult
+import com.github.mikeandv.pingwatch.entity.ParallelismInputResult
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import com.github.mikeandv.pingwatch.entity.TimeInputResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
+
+fun normalizeUrl(url: String): String? {
+    return url.toHttpUrlOrNull()?.toString()
+}
 
 //private val okHttpClient = OkHttpClient()
 
@@ -24,7 +30,7 @@ fun handleUrlChange(
 }
 
 fun handleImport(
-    updateUrlList: (Map<String, TestCaseParams>) -> Unit,
+    updateUrlList: (List<String>) -> Unit,
     updateShowDialog: (Boolean) -> Unit,
     updateDialogErrorMessage: (String?) -> Unit,
     urlPattern: Regex
@@ -71,25 +77,24 @@ fun handleImport(
 fun handleAddUrl(
     url: String,
     urlPattern: Regex,
-    updateUrlList: (Map<String, TestCaseParams>) -> Unit,
-    currentUrls: Map<String, TestCaseParams>,
+    updateUrlList: (List<String>) -> Unit,
     resetUrl: () -> Unit,
     updateErrorMessage: (String?) -> Unit
 ) {
-    if (url.matches(urlPattern)) {
-        updateUrlList(
-            currentUrls + (url to TestCaseParams(
-                false,
-                0L,
-                0L,
-                ""
-            ))
-        ) // TODO check if it is true that we add with 0L
-        resetUrl()
-        updateErrorMessage(null)
-    } else {
-        updateErrorMessage("Incorrect URL")
+    if (!url.matches(urlPattern)) {
+        updateErrorMessage("Incorrect URL format")
+        return
     }
+
+    val normalizedUrl = normalizeUrl(url)
+    if (normalizedUrl == null) {
+        updateErrorMessage("URL cannot be normalized")
+        return
+    }
+
+    updateUrlList(listOf(normalizedUrl))
+    resetUrl()
+    updateErrorMessage(null)
 }
 
 fun handleIndividualTimeInputChange(
@@ -200,6 +205,22 @@ fun handleTestCountChange(
         }
 
         is CountInputResult.Error -> {
+            updateErrorMessage(result.message)
+        }
+    }
+}
+
+fun handleParallelismInputChange(
+    input: String,
+    updateParallelismInput: (String) -> Unit,
+    updateErrorMessage: (String?) -> Unit
+) {
+    updateParallelismInput(input)
+    when (val result = processParallelismInput(input)) {
+        is ParallelismInputResult.Valid -> {
+            updateErrorMessage(null)
+        }
+        is ParallelismInputResult.Error -> {
             updateErrorMessage(result.message)
         }
     }

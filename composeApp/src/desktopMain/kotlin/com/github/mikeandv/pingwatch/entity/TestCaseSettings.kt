@@ -2,7 +2,9 @@ package com.github.mikeandv.pingwatch.entity
 
 import com.github.mikeandv.pingwatch.aggregator.UrlAvgAggregator
 import com.github.mikeandv.pingwatch.listener.TimingEventListenerFactory
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 
 class TestCaseSettings private constructor(
     val executionMode: ExecutionMode,
@@ -15,6 +17,8 @@ class TestCaseSettings private constructor(
             val agg = UrlAvgAggregator()
 
             val client = OkHttpClient.Builder()
+                .cache(null)
+                .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
                 .eventListenerFactory(TimingEventListenerFactory { agg.add(it) })
                 .build()
             return TestCaseSettings(

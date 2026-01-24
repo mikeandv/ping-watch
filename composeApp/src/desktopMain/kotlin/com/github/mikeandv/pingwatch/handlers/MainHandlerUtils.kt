@@ -2,12 +2,13 @@ package com.github.mikeandv.pingwatch.handlers
 
 import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.entity.*
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 fun validateUrlsFile(
     lines: List<String>,
     maxLinesLimit: Int,
     urlPattern: Regex
-): Result<Map<String, TestCaseParams>> {
+): Result<List<String>> {
 
     if (lines.isEmpty()) {
         return Result.failure(Exception("There is no lines in file"))
@@ -21,9 +22,23 @@ fun validateUrlsFile(
         return Result.failure(Exception("Some of urls have incorrect format"))
     }
 
-    return Result.success(
-        lines.associateWith { TestCaseParams(false, 0L, 0L, "") }
-    )
+    val normalizedUrls = mutableListOf<String>()
+    val failedUrls = mutableListOf<String>()
+
+    for (line in lines) {
+        val normalized = line.toHttpUrlOrNull()?.toString()
+        if (normalized != null) {
+            normalizedUrls.add(normalized)
+        } else {
+            failedUrls.add(line)
+        }
+    }
+
+    if (failedUrls.isNotEmpty()) {
+        return Result.failure(Exception("Failed to normalize URLs:\n${failedUrls.joinToString("\n")}"))
+    }
+
+    return Result.success(normalizedUrls)
 }
 
 fun processTimeInput(input: String): TimeInputResult {
@@ -71,6 +86,21 @@ fun processCountInput(input: String): CountInputResult {
     val number = input.toLongOrNull() ?: return CountInputResult.Error("Enter the number")
 
     return CountInputResult.Valid(number)
+}
+
+fun processParallelismInput(input: String): ParallelismInputResult {
+    if (input.isEmpty()) {
+        return ParallelismInputResult.Error("Parallelism is required")
+    }
+
+    val value = input.toIntOrNull()
+        ?: return ParallelismInputResult.Error("Must be a number")
+
+    return when {
+        value < 1 -> ParallelismInputResult.Error("Must be at least 1")
+        value > 64 -> ParallelismInputResult.Error("Must be at most 64")
+        else -> ParallelismInputResult.Valid(value)
+    }
 }
 
 fun validateLaunchTest(

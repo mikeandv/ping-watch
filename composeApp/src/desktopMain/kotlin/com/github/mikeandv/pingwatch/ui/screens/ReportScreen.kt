@@ -4,19 +4,13 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.entity.TestCaseResult
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
-import androidx.compose.material.icons.Icons
-import androidx.compose.runtime.*
 
 
 @Composable

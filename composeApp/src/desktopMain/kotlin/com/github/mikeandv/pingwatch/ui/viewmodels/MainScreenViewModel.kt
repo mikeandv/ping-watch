@@ -40,12 +40,26 @@ class MainScreenViewModel {
     private val _timeInput = MutableStateFlow("")
     val timeInput: StateFlow<String> = _timeInput
 
+    private val _requestCount = MutableStateFlow(0L)
+    val requestCount: StateFlow<Long> = _requestCount
+
+    private val _timeMillis = MutableStateFlow(0L)
+    val timeMillis: StateFlow<Long> = _timeMillis
+
+
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
 
 
     fun updateUrlList(newUrls: Map<String, TestCaseParams>) {
         _urlList.value = newUrls
+    }
+
+    fun updateUrlList(newUrlList: List<String>) {
+        val newEntries = newUrlList.associateWith {
+            TestCaseParams(false, _requestCount.value, _timeMillis.value, "")
+        }
+        _urlList.value += newEntries
     }
 
     fun updateTestCase(newTestCase: TestCase) {
@@ -69,6 +83,7 @@ class MainScreenViewModel {
     }
 
     fun updateTimeInMillis(newTimeInMillis: Long) {
+        _timeMillis.value = newTimeInMillis
         _urlList.value = _urlList.value.mapValues { (_, value) ->
             if (value.isEdit) {
                 value
@@ -79,6 +94,7 @@ class MainScreenViewModel {
     }
 
     fun updateRequestCount(newRequestCount: Long) {
+        _requestCount.value = newRequestCount
         _urlList.value = _urlList.value.mapValues { (_, value) ->
             if (value.isEdit) {
                 value
@@ -92,7 +108,7 @@ class MainScreenViewModel {
         val updatedMap = _urlList.value.toMutableMap()
         updatedMap[key]?.let { oldValue ->
             updatedMap[key] =
-                TestCaseParams(true, newRequestCount, oldValue.durationValue, oldValue.unformattedDurationValue)
+                TestCaseParams(oldValue.isEdit, newRequestCount, oldValue.durationValue, oldValue.unformattedDurationValue)
         }
         _urlList.value = updatedMap
     }
@@ -101,7 +117,7 @@ class MainScreenViewModel {
         val updatedMap = _urlList.value.toMutableMap()
         updatedMap[key]?.let { oldValue ->
             updatedMap[key] =
-                TestCaseParams(true, oldValue.countValue, newTimeInMillis, convertMillisToTime(newTimeInMillis))
+                TestCaseParams(oldValue.isEdit, oldValue.countValue, newTimeInMillis, convertMillisToTime(newTimeInMillis))
         }
         _urlList.value = updatedMap
     }
@@ -110,7 +126,7 @@ class MainScreenViewModel {
         val updatedMap = _urlList.value.toMutableMap()
         updatedMap[key]?.let { oldValue ->
             updatedMap[key] =
-                TestCaseParams(true, oldValue.countValue, oldValue.durationValue, newUnformattedDurationValue)
+                TestCaseParams(oldValue.isEdit, oldValue.countValue, oldValue.durationValue, newUnformattedDurationValue)
         }
         _urlList.value = updatedMap
     }
