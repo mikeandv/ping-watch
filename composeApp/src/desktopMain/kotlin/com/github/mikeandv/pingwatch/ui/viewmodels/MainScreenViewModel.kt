@@ -2,6 +2,7 @@ package com.github.mikeandv.pingwatch.ui.viewmodels
 
 import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.convertMillisToTime
+import com.github.mikeandv.pingwatch.entity.ExecutionMode
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import com.github.mikeandv.pingwatch.entity.TestCaseSettings
@@ -16,7 +17,20 @@ class MainScreenViewModel {
     private val _urlList = MutableStateFlow(emptyMap<String, TestCaseParams>())
     val urlList: StateFlow<Map<String, TestCaseParams>> = _urlList
 
-    private val _testCase = MutableStateFlow(TestCase(emptyMap(), RunType.COUNT, testCaseSettings.value))
+    private val _executionMode = MutableStateFlow(ExecutionMode.SEQUENTIAL)
+    val executionMode: StateFlow<ExecutionMode> = _executionMode
+
+    private val _parallelismInput = MutableStateFlow("8")
+    val parallelismInput: StateFlow<String> = _parallelismInput
+
+    private val _parallelismError = MutableStateFlow<String?>(null)
+    val parallelismError: StateFlow<String?> = _parallelismError
+
+    private val _parallelism = MutableStateFlow(8)
+    val parallelism: StateFlow<Int> = _parallelism
+
+    private val _testCase =
+        MutableStateFlow(TestCase(emptyMap(), RunType.COUNT, ExecutionMode.SEQUENTIAL, 8, testCaseSettings.value))
     val testCase: StateFlow<TestCase> = _testCase
 
     private val _progress = MutableStateFlow(0L)
@@ -40,16 +54,12 @@ class MainScreenViewModel {
     private val _timeInput = MutableStateFlow("")
     val timeInput: StateFlow<String> = _timeInput
 
-    private val _requestCount = MutableStateFlow(0L)
-    val requestCount: StateFlow<Long> = _requestCount
-
-    private val _timeMillis = MutableStateFlow(0L)
-    val timeMillis: StateFlow<Long> = _timeMillis
-
-
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
 
+    private var _requestCount = 0L
+
+    private var _timeMillis = 0L
 
     fun updateUrlList(newUrls: Map<String, TestCaseParams>) {
         _urlList.value = newUrls
@@ -57,7 +67,7 @@ class MainScreenViewModel {
 
     fun updateUrlList(newUrlList: List<String>) {
         val newEntries = newUrlList.associateWith {
-            TestCaseParams(false, _requestCount.value, _timeMillis.value, "")
+            TestCaseParams(false, _requestCount, _timeMillis, "")
         }
         _urlList.value += newEntries
     }
@@ -83,7 +93,7 @@ class MainScreenViewModel {
     }
 
     fun updateTimeInMillis(newTimeInMillis: Long) {
-        _timeMillis.value = newTimeInMillis
+        _timeMillis = newTimeInMillis
         _urlList.value = _urlList.value.mapValues { (_, value) ->
             if (value.isEdit) {
                 value
@@ -94,7 +104,7 @@ class MainScreenViewModel {
     }
 
     fun updateRequestCount(newRequestCount: Long) {
-        _requestCount.value = newRequestCount
+        _requestCount = newRequestCount
         _urlList.value = _urlList.value.mapValues { (_, value) ->
             if (value.isEdit) {
                 value
@@ -108,7 +118,12 @@ class MainScreenViewModel {
         val updatedMap = _urlList.value.toMutableMap()
         updatedMap[key]?.let { oldValue ->
             updatedMap[key] =
-                TestCaseParams(oldValue.isEdit, newRequestCount, oldValue.durationValue, oldValue.unformattedDurationValue)
+                TestCaseParams(
+                    oldValue.isEdit,
+                    newRequestCount,
+                    oldValue.durationValue,
+                    oldValue.unformattedDurationValue
+                )
         }
         _urlList.value = updatedMap
     }
@@ -117,7 +132,12 @@ class MainScreenViewModel {
         val updatedMap = _urlList.value.toMutableMap()
         updatedMap[key]?.let { oldValue ->
             updatedMap[key] =
-                TestCaseParams(oldValue.isEdit, oldValue.countValue, newTimeInMillis, convertMillisToTime(newTimeInMillis))
+                TestCaseParams(
+                    oldValue.isEdit,
+                    oldValue.countValue,
+                    newTimeInMillis,
+                    convertMillisToTime(newTimeInMillis)
+                )
         }
         _urlList.value = updatedMap
     }
@@ -126,7 +146,12 @@ class MainScreenViewModel {
         val updatedMap = _urlList.value.toMutableMap()
         updatedMap[key]?.let { oldValue ->
             updatedMap[key] =
-                TestCaseParams(oldValue.isEdit, oldValue.countValue, oldValue.durationValue, newUnformattedDurationValue)
+                TestCaseParams(
+                    oldValue.isEdit,
+                    oldValue.countValue,
+                    oldValue.durationValue,
+                    newUnformattedDurationValue
+                )
         }
         _urlList.value = updatedMap
     }
@@ -162,6 +187,22 @@ class MainScreenViewModel {
 
     fun updateTestCaseSettings(newTestCaseSettings: TestCaseSettings) {
         _testCaseSettings.value = newTestCaseSettings
+    }
+
+    fun updateExecutionMode(newExecutionMode: ExecutionMode) {
+        _executionMode.value = newExecutionMode
+    }
+
+    fun updateParallelismInput(newParallelismInput: String) {
+        _parallelismInput.value = newParallelismInput
+    }
+
+    fun updateParallelismError(newParallelismError: String?) {
+        _parallelismError.value = newParallelismError
+    }
+
+    fun updateParallelism(newParallelism: Int) {
+        _parallelism.value = newParallelism
     }
 }
 

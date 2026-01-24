@@ -1,7 +1,8 @@
 package com.github.mikeandv.pingwatch.handlers
 
 import com.github.mikeandv.pingwatch.entity.CountInputResult
-import com.github.mikeandv.pingwatch.entity.ParallelismInputResult
+import com.github.mikeandv.pingwatch.entity.ExecutionMode
+import com.github.mikeandv.pingwatch.entity.IntInputResult
 import com.github.mikeandv.pingwatch.entity.TestCase
 import com.github.mikeandv.pingwatch.entity.TestCaseParams
 import com.github.mikeandv.pingwatch.entity.TimeInputResult
@@ -15,7 +16,7 @@ fun normalizeUrl(url: String): String? {
     return url.toHttpUrlOrNull()?.toString()
 }
 
-//private val okHttpClient = OkHttpClient()
+private const val mbMultiplicator = 1024 * 1024
 
 fun handleUrlChange(
     input: String,
@@ -33,14 +34,16 @@ fun handleImport(
     updateUrlList: (List<String>) -> Unit,
     updateShowDialog: (Boolean) -> Unit,
     updateDialogErrorMessage: (String?) -> Unit,
-    urlPattern: Regex
+    urlPattern: Regex,
+    maxFileSize: Int,
+    maxLinesLimit: Int,
+    allowedFileExtensions: List<String>
 ) {
-    val maxFileSizeBytes = 5 * 1024 * 1024 // file size 5mb limit
-    val maxLinesLimit = 20  // limit to lines in file
-
+    val maxFileSizeBytes = maxFileSize * mbMultiplicator
 
     val fileChooser = JFileChooser()
-    val filter = FileNameExtensionFilter("Text File (*.txt)", "txt")
+    val extensionsDisplay = allowedFileExtensions.joinToString(", ") { "*.$it" }
+    val filter = FileNameExtensionFilter("Files ($extensionsDisplay)", *allowedFileExtensions.toTypedArray())
     fileChooser.fileFilter = filter
 
 
@@ -52,8 +55,14 @@ fun handleImport(
 
     val file = fileChooser.selectedFile
 
+    if (file.extension !in allowedFileExtensions) {
+        updateDialogErrorMessage("Allowed file extension is ${allowedFileExtensions.joinToString(", ")}")
+        updateShowDialog(true)
+        return
+    }
+
     if (file.length() > maxFileSizeBytes) {
-        updateDialogErrorMessage("File size exceeds the limit of ${maxFileSizeBytes / (1024 * 1024)} MB.\nPlease select another file.")
+        updateDialogErrorMessage("File size exceeds the limit of ${maxFileSizeBytes / (mbMultiplicator)} MB.\nPlease select another file.")
         updateShowDialog(true)
         return
     }
@@ -210,36 +219,64 @@ fun handleTestCountChange(
     }
 }
 
+fun handleIntInputChange(
+    input: String,
+    updateInput: (String) -> Unit,
+    updateErrorMessage: (String?) -> Unit,
+    processInput: (String) -> IntInputResult
+) {
+    updateInput(input)
+    when (val result = processInput(input)) {
+        is IntInputResult.Valid -> updateErrorMessage(null)
+        is IntInputResult.Error -> updateErrorMessage(result.message)
+    }
+}
+
 fun handleParallelismInputChange(
     input: String,
     updateParallelismInput: (String) -> Unit,
+    updateParallelism: (Int) -> Unit,
     updateErrorMessage: (String?) -> Unit
 ) {
     updateParallelismInput(input)
     when (val result = processParallelismInput(input)) {
-        is ParallelismInputResult.Valid -> {
+        is IntInputResult.Valid -> {
+            updateParallelism(result.value)
             updateErrorMessage(null)
         }
-        is ParallelismInputResult.Error -> {
-            updateErrorMessage(result.message)
-        }
+        is IntInputResult.Error -> updateErrorMessage(result.message)
     }
 }
+
+fun handleMaxFileSizeInputChange(
+    input: String,
+    updateMaxFileSizeInput: (String) -> Unit,
+    updateErrorMessage: (String?) -> Unit
+) = handleIntInputChange(input, updateMaxFileSizeInput, updateErrorMessage, ::processMaxFileSizeInput)
+
+fun handleMaxLinesLimitInputChange(
+    input: String,
+    updateMaxLinesLimitInput: (String) -> Unit,
+    updateErrorMessage: (String?) -> Unit
+) = handleIntInputChange(input, updateMaxLinesLimitInput, updateErrorMessage, ::processMaxLinesLimitInput)
 
 
 fun handleLaunchTest(
     testCase: TestCase,
     isDuration: Boolean,
+    executionMode: ExecutionMode,
+    parallelism: Int,
     cancelFlag: () -> Boolean,
     urlList: Map<String, TestCaseParams>,
     durationErrorMessage: String?,
+    parallelismError: String?,
     coroutineScope: CoroutineScope,
     onUpdateTestCase: (TestCase) -> Unit,
     updateProgress: (Long) -> Unit,
     updateShowDialog: (Boolean) -> Unit,
     updateDialogMessage: (String) -> Unit
 ) {
-    val validation = validateLaunchTest(urlList, isDuration, durationErrorMessage)
+    val validation = validateLaunchTest(urlList, isDuration, durationErrorMessage, parallelismError)
 
     if (!validation.isValid) {
         updateDialogMessage(validation.errorMessage!!)
@@ -247,7 +284,7 @@ fun handleLaunchTest(
         return
     }
 
-    val tmpTestCase = buildTestCase(testCase, urlList, isDuration)
+    val tmpTestCase = buildTestCase(testCase, urlList, isDuration, executionMode, parallelism)
     onUpdateTestCase(tmpTestCase)
 
     coroutineScope.launch {

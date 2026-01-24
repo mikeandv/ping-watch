@@ -88,25 +88,35 @@ fun processCountInput(input: String): CountInputResult {
     return CountInputResult.Valid(number)
 }
 
-fun processParallelismInput(input: String): ParallelismInputResult {
+fun processIntInput(input: String, min: Int, max: Int, requiredMessage: String = "Required"): IntInputResult {
     if (input.isEmpty()) {
-        return ParallelismInputResult.Error("Parallelism is required")
+        return IntInputResult.Error(requiredMessage)
     }
 
     val value = input.toIntOrNull()
-        ?: return ParallelismInputResult.Error("Must be a number")
+        ?: return IntInputResult.Error("Must be a number")
 
     return when {
-        value < 1 -> ParallelismInputResult.Error("Must be at least 1")
-        value > 64 -> ParallelismInputResult.Error("Must be at most 64")
-        else -> ParallelismInputResult.Valid(value)
+        value < min -> IntInputResult.Error("Must be at least $min")
+        value > max -> IntInputResult.Error("Must be at most $max")
+        else -> IntInputResult.Valid(value)
     }
 }
+
+fun processParallelismInput(input: String): IntInputResult =
+    processIntInput(input, min = 1, max = 64, requiredMessage = "Parallelism is required")
+
+fun processMaxFileSizeInput(input: String): IntInputResult =
+    processIntInput(input, min = 1, max = 100)
+
+fun processMaxLinesLimitInput(input: String): IntInputResult =
+    processIntInput(input, min = 1, max = 1000)
 
 fun validateLaunchTest(
     urlList: Map<String, TestCaseParams>,
     isDuration: Boolean,
-    durationErrorMessage: String?
+    durationErrorMessage: String?,
+    parallelismError: String?
 ): LaunchValidationResult {
 
     val errors = mutableListOf<String>()
@@ -117,6 +127,10 @@ fun validateLaunchTest(
 
     if (!durationErrorMessage.isNullOrEmpty()) {
         errors.add("Duration format is incorrect!")
+    }
+
+    if (!parallelismError.isNullOrEmpty()) {
+        errors.add("Parallelism value is incorrect!")
     }
 
     if (isDuration && urlList.values.any { it.durationValue == 0L }) {
@@ -149,11 +163,15 @@ fun validateLaunchTest(
 fun buildTestCase(
     original: TestCase,
     urlList: Map<String, TestCaseParams>,
-    isDuration: Boolean
+    isDuration: Boolean,
+    executionMode: ExecutionMode,
+    parallelism: Int
 ): TestCase {
     return TestCase(
         urlList,
         if (isDuration) RunType.DURATION else RunType.COUNT,
+        executionMode,
+        parallelism,
         original.settings,
         original.testCaseState,
         original.testCaseResult

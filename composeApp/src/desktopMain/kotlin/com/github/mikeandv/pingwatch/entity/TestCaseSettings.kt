@@ -7,12 +7,15 @@ import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
 class TestCaseSettings private constructor(
-    val executionMode: ExecutionMode,
-    val parallelism: Int,
+    val maxFileSize: Int,
+    val maxLinesLimit: Int,
+    val allowedFileExtensions: List<String>,
     val agg: UrlAvgAggregator,
     val okHttpClient: OkHttpClient
 ) {
     companion object {
+        val DEFAULT_FILE_EXTENSIONS = listOf("txt", "json")
+
         fun createDefaultSettings(): TestCaseSettings {
             val agg = UrlAvgAggregator()
 
@@ -22,8 +25,9 @@ class TestCaseSettings private constructor(
                 .eventListenerFactory(TimingEventListenerFactory { agg.add(it) })
                 .build()
             return TestCaseSettings(
-                ExecutionMode.SEQUENTIAL,
-                8,
+                5,
+                20,
+                DEFAULT_FILE_EXTENSIONS,
                 agg,
                 client
             )
@@ -31,11 +35,12 @@ class TestCaseSettings private constructor(
     }
 
     fun copy(
-        executionMode: ExecutionMode = this.executionMode,
-        parallelism: Int = this.parallelism,
+        maxFileSize: Int = this.maxFileSize,
+        maxLinesLimit: Int = this.maxLinesLimit,
+        allowedFileExtensions: List<String> = this.allowedFileExtensions,
         agg: UrlAvgAggregator = this.agg,
         okHttpClient: OkHttpClient = this.okHttpClient
     ): TestCaseSettings {
-        return TestCaseSettings(executionMode, parallelism, agg, okHttpClient)
+        return TestCaseSettings(maxFileSize, maxLinesLimit, allowedFileExtensions, agg, okHttpClient)
     }
 }

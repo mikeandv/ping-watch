@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.*
 class TestCase(
     val urls: Map<String, TestCaseParams>,
     val runType: RunType,
+    val executionMode: ExecutionMode,
+    val parallelism: Int,
     val settings: TestCaseSettings,
     val testCaseState: TestCaseState = TestCaseState(),
     testCaseResult: List<TestCaseResult>? = null
@@ -74,11 +76,13 @@ class TestCase(
     fun copy(
         urls: Map<String, TestCaseParams> = this.urls,
         runType: RunType = this.runType,
+        executionMode: ExecutionMode = this.executionMode,
+        parallelism: Int = this.parallelism,
         settings: TestCaseSettings = this.settings,
         testCaseState: TestCaseState = this.testCaseState,
         testCaseResult: List<TestCaseResult>? = this.testCaseResult
     ): TestCase {
-        return TestCase(urls, runType, settings, testCaseState, testCaseResult)
+        return TestCase(urls, runType, executionMode, parallelism, settings, testCaseState, testCaseResult)
     }
 
     override fun toString(): String {

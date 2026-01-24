@@ -79,7 +79,7 @@ suspend fun runR(testCase: TestCase, cancelFlag: () -> Boolean): List<TestCaseRe
 
 
 suspend fun runByCount(testCase: TestCase, cancelFlag: () -> Boolean): List<ResponseData> =
-    when (testCase.settings.executionMode) {
+    when (testCase.executionMode) {
 
         ExecutionMode.SEQUENTIAL -> {
             val result = mutableListOf<ResponseData>()
@@ -98,9 +98,9 @@ suspend fun runByCount(testCase: TestCase, cancelFlag: () -> Boolean): List<Resp
         }
 
         ExecutionMode.PARALLEL -> coroutineScope {
-            val dispatcher = Dispatchers.IO.limitedParallelism(testCase.settings.parallelism)
+            val dispatcher = Dispatchers.IO.limitedParallelism(testCase.parallelism)
 
-            val queue = Channel<String>(capacity = testCase.settings.parallelism * 4)
+            val queue = Channel<String>(capacity = testCase.parallelism * 4)
             val results = ConcurrentLinkedQueue<ResponseData>()
 
             val producer = launch {
@@ -116,7 +116,7 @@ suspend fun runByCount(testCase: TestCase, cancelFlag: () -> Boolean): List<Resp
                 }
             }
 
-            val workers = List(testCase.settings.parallelism) {
+            val workers = List(testCase.parallelism) {
                 launch(dispatcher) {
                     for (url in queue) {
                         if (!isActive || cancelFlag()) break
@@ -146,7 +146,7 @@ suspend fun runByCount(testCase: TestCase, cancelFlag: () -> Boolean): List<Resp
 
 
 suspend fun runByDuration(testCase: TestCase, cancelFlag: () -> Boolean): List<ResponseData> {
-    return when (testCase.settings.executionMode) {
+    return when (testCase.executionMode) {
         ExecutionMode.SEQUENTIAL -> {
             val result = mutableListOf<ResponseData>()
             val start = System.currentTimeMillis()
@@ -166,7 +166,7 @@ suspend fun runByDuration(testCase: TestCase, cancelFlag: () -> Boolean): List<R
 
         ExecutionMode.PARALLEL -> coroutineScope {
 
-            val dispatcher = Dispatchers.IO.limitedParallelism(testCase.settings.parallelism)
+            val dispatcher = Dispatchers.IO.limitedParallelism(testCase.parallelism)
             val result = ConcurrentLinkedQueue<ResponseData>()
             val start = System.currentTimeMillis()
 
