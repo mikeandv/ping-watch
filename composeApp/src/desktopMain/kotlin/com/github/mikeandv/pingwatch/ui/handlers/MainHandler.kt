@@ -1,11 +1,10 @@
-package com.github.mikeandv.pingwatch.handlers
+package com.github.mikeandv.pingwatch.ui.handlers
 
-import com.github.mikeandv.pingwatch.entity.CountInputResult
-import com.github.mikeandv.pingwatch.entity.ExecutionMode
-import com.github.mikeandv.pingwatch.entity.IntInputResult
-import com.github.mikeandv.pingwatch.entity.TestCase
-import com.github.mikeandv.pingwatch.entity.TestCaseParams
-import com.github.mikeandv.pingwatch.entity.TimeInputResult
+import com.github.mikeandv.pingwatch.domain.*
+import com.github.mikeandv.pingwatch.domain.ExecutionMode
+import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
+import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
+import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -244,6 +243,7 @@ fun handleParallelismInputChange(
             updateParallelism(result.value)
             updateErrorMessage(null)
         }
+
         is IntInputResult.Error -> updateErrorMessage(result.message)
     }
 }
@@ -267,6 +267,7 @@ fun handleLaunchTest(
     executionMode: ExecutionMode,
     parallelism: Int,
     cancelFlag: () -> Boolean,
+    resetCancelFlag: () -> Unit,
     urlList: Map<String, TestCaseParams>,
     durationErrorMessage: String?,
     parallelismError: String?,
@@ -283,6 +284,9 @@ fun handleLaunchTest(
         updateShowDialog(true)
         return
     }
+
+    resetCancelFlag()
+    updateProgress(0)
 
     val tmpTestCase = buildTestCase(testCase, urlList, isDuration, executionMode, parallelism)
     onUpdateTestCase(tmpTestCase)

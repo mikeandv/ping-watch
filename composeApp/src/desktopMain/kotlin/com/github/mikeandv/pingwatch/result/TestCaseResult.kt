@@ -1,4 +1,6 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.result
+
+import com.github.mikeandv.pingwatch.domain.ResponseData
 
 class TestCaseResult private constructor(
     val url: String,
@@ -21,9 +23,6 @@ class TestCaseResult private constructor(
     val responseBodyMs: Long?
 ) {
     companion object {
-        fun create(data: List<ResponseData>): List<TestCaseResult> =
-            create(data, emptyMap())
-
         fun create(data: List<ResponseData>, metricsByUrl: Map<String, UrlAvgMetrics>): List<TestCaseResult> {
             val resultCalc = mutableListOf<TestCaseResult>()
 

@@ -1,13 +1,9 @@
 package com.github.mikeandv.pingwatch.ui.components
 
-import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -17,9 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.entity.TestCaseParams
-import com.github.mikeandv.pingwatch.handlers.handleIndividualTestCountChange
-import com.github.mikeandv.pingwatch.handlers.handleIndividualTimeInputChange
+import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
+import com.github.mikeandv.pingwatch.domain.TestCase
+import com.github.mikeandv.pingwatch.domain.TestCaseParams
+import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTestCountChange
+import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTimeInputChange
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 @Composable
 fun UrlListSection(
@@ -28,6 +28,7 @@ fun UrlListSection(
     isDuration: Boolean,
     timeInput: String,
     countInput: String,
+    testCase: TestCase,
     updateIndividualCount: (Long, String) -> Unit,
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
@@ -36,6 +37,7 @@ fun UrlListSection(
     onIndividualErrorChange: (String?) -> Unit
 ) {
     val scrollState = rememberScrollState()
+
 
     Box(
         modifier = modifier
@@ -51,6 +53,7 @@ fun UrlListSection(
                 isDuration = isDuration,
                 timeInput = timeInput,
                 countInput = countInput,
+                testCase = testCase,
                 updateIndividualCount = updateIndividualCount,
                 updateIndividualTime = updateIndividualTime,
                 updateIndividualUnformattedTime = updateIndividualUnformattedTime,
@@ -72,6 +75,7 @@ fun UrlListColumn(
     isDuration: Boolean,
     timeInput: String,
     countInput: String,
+    testCase: TestCase,
     updateIndividualCount: (Long, String) -> Unit,
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
@@ -79,6 +83,9 @@ fun UrlListColumn(
     onRemoveUrl: (String) -> Unit,
     onIndividualErrorChange: (String?) -> Unit
 ) {
+    val status by testCase.testCaseState.status.collectAsState()
+    val isNotRunning = checkIsNotRunningStatus(status)
+
     urlList.entries.forEachIndexed { index, entry ->
         UrlListItem(
             url = entry.key,
@@ -86,12 +93,14 @@ fun UrlListColumn(
             isDuration = isDuration,
             timeInput = timeInput,
             countInput = countInput,
+            progressFlow = if (!isDuration) testCase.urlProgressFlow(entry.key) else emptyFlow(),
             updateIndividualCount = updateIndividualCount,
             updateIndividualTime = updateIndividualTime,
             updateIndividualUnformattedTime = updateIndividualUnformattedTime,
             updateIndividualIsEdit = updateIndividualIsEdit,
             onRemoveUrl = onRemoveUrl,
-            onIndividualErrorChange = onIndividualErrorChange
+            onIndividualErrorChange = onIndividualErrorChange,
+            enabled = isNotRunning
         )
 
         if (index != urlList.size - 1) {
@@ -111,14 +120,17 @@ private fun UrlListItem(
     isDuration: Boolean,
     timeInput: String,
     countInput: String,
+    progressFlow: Flow<Int>,
     updateIndividualCount: (Long, String) -> Unit,
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
     updateIndividualIsEdit: (Boolean, String) -> Unit,
     onRemoveUrl: (String) -> Unit,
-    onIndividualErrorChange: (String?) -> Unit
+    onIndividualErrorChange: (String?) -> Unit,
+    enabled: Boolean
 ) {
     var isChecked by remember { mutableStateOf(params.isEdit) }
+    val progress by progressFlow.collectAsState(initial = 0)
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
@@ -127,6 +139,11 @@ private fun UrlListItem(
     ) {
         Text(url, modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.width(16.dp))
+
+        if (!isDuration) {
+            UrlProgressIndicator(progress)
+            Spacer(modifier = Modifier.width(16.dp))
+        }
 
         Text(text = "Edit")
         Spacer(modifier = Modifier.width(8.dp))
@@ -140,7 +157,8 @@ private fun UrlListItem(
                     updateIndividualUnformattedTime, updateIndividualCount,
                     onIndividualErrorChange
                 )
-            }
+            },
+            enabled = enabled
         )
 
         Box(modifier = Modifier.width(150.dp)) {
@@ -152,13 +170,42 @@ private fun UrlListItem(
                     updateIndividualTime = updateIndividualTime,
                     updateIndividualUnformattedTime = updateIndividualUnformattedTime,
                     updateIndividualCount = updateIndividualCount,
-                    onErrorChange = onIndividualErrorChange
+                    onErrorChange = onIndividualErrorChange,
+                    enabled = enabled
                 )
             }
         }
 
         Spacer(modifier = Modifier.width(16.dp))
-        RemoveButton(onClick = { onRemoveUrl(url) })
+        RemoveButton(
+            onClick = { onRemoveUrl(url) },
+            enabled = enabled
+        )
+    }
+}
+
+@Composable
+private fun UrlProgressIndicator(progress: Int) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.size(18.dp)
+    ) {
+        CircularProgressIndicator(
+            progress = 1f,
+            modifier = Modifier.fillMaxSize(),
+            strokeWidth = 3.dp,
+            color = MaterialTheme.colors.primary.copy(alpha = 0.2f)
+        )
+        CircularProgressIndicator(
+            progress = progress / 100f,
+            modifier = Modifier.fillMaxSize(),
+            strokeWidth = 3.dp
+        )
+//        Text(
+//            text = "$progress%",
+//            style = MaterialTheme.typography.caption,
+//            maxLines = 1
+//        )
     }
 }
 
@@ -170,7 +217,8 @@ private fun IndividualInputField(
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
     updateIndividualCount: (Long, String) -> Unit,
-    onErrorChange: (String?) -> Unit
+    onErrorChange: (String?) -> Unit,
+    enabled: Boolean
 ) {
     val (value, hint, onValueChange) = if (isDuration) {
         Triple(
@@ -200,10 +248,11 @@ private fun IndividualInputField(
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
+        enabled = enabled,
         cursorBrush = SolidColor(MaterialTheme.colors.primary),
         modifier = Modifier
             .fillMaxSize()
-            .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+            .border(1.dp, if (enabled) Color.Gray else Color.LightGray, RoundedCornerShape(4.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp),
         decorationBox = { innerTextField ->
             Box(
@@ -224,12 +273,12 @@ private fun IndividualInputField(
 }
 
 @Composable
-private fun RemoveButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
+private fun RemoveButton(onClick: () -> Unit, enabled: Boolean) {
+    IconButton(onClick = onClick, modifier = Modifier.size(18.dp), enabled = enabled) {
         Icon(
             imageVector = Icons.Filled.Close,
             contentDescription = "Remove",
-            tint = MaterialTheme.colors.error
+            tint = if (enabled) Color.Gray else Color.LightGray
         )
     }
 }

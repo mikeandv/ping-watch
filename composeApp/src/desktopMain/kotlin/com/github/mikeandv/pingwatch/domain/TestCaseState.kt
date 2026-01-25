@@ -1,6 +1,5 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.domain
 
-import com.github.mikeandv.pingwatch.StatusCode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

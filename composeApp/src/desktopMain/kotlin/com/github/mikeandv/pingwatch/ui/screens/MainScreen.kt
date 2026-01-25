@@ -10,8 +10,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.handlers.*
 import com.github.mikeandv.pingwatch.ui.components.*
+import com.github.mikeandv.pingwatch.ui.handlers.handleAddUrl
+import com.github.mikeandv.pingwatch.ui.handlers.handleImport
+import com.github.mikeandv.pingwatch.ui.handlers.handleLaunchTest
+import com.github.mikeandv.pingwatch.ui.handlers.handleParallelismInputChange
+import com.github.mikeandv.pingwatch.ui.handlers.handleTestCountChange
+import com.github.mikeandv.pingwatch.ui.handlers.handleTimeInputChange
+import com.github.mikeandv.pingwatch.ui.handlers.handleUrlChange
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -72,11 +78,12 @@ fun MainScreen(
 
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
                 FlowControlButtons(
-                    testCase = testCase,
+                    testCaseState = testCase.testCaseState,
                     onLaunchTest = {
                         handleLaunchTest(
                             testCase, isDuration, executionMode, parallelism,
-                            { cancelFlag.get() }, urlList, durationErrorMessage, parallelismError,
+                            { cancelFlag.get() }, { cancelFlag.set(false) },
+                            urlList, durationErrorMessage, parallelismError,
                             coroutineScope, viewModel::updateTestCase, viewModel::updateProgress,
                             viewModel::updateShowDialog, viewModel::updateDialogErrorMessage
                         )
@@ -90,6 +97,7 @@ fun MainScreen(
             }
 
             ParametersSection(
+                testCaseState = testCase.testCaseState,
                 url = url,
                 onUrlChange = { input ->
                     handleUrlChange(input, { url = it }, viewModel::updateUrlErrorMessage, URL_PATTERN)
@@ -145,7 +153,7 @@ fun MainScreen(
                     )
                 },
                 progress = progress,
-                isDurationCountEnabled = urlList.isNotEmpty(),
+                isEnabled = urlList.isNotEmpty(),
                 executionMode = executionMode,
                 onExecutionModeChange = { mode ->
                     viewModel.updateExecutionMode(mode)
@@ -168,6 +176,7 @@ fun MainScreen(
                 isDuration = isDuration,
                 timeInput = timeInput,
                 countInput = countInput,
+                testCase = testCase,
                 updateIndividualCount = viewModel::updateRequestCountByKey,
                 updateIndividualTime = viewModel::updateTimeInMillisByKey,
                 updateIndividualUnformattedTime = viewModel::updateUnformattedDurationValueByKey,

@@ -9,7 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.entity.TestCaseResult
+import com.github.mikeandv.pingwatch.result.TestCaseResult
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
 
 
@@ -63,27 +63,34 @@ fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
 
 @Composable
 fun buildTopUrls(resultData: List<TestCaseResult>) {
-    val topUrls = resultData.sortedByDescending { it.median }.take(5)
-    val maxMedian = topUrls.maxOf { it.median.toFloat() }
-
     Text(
         text = "Top 5 URLs by Median Response Time",
         style = MaterialTheme.typography.subtitle1,
     )
-    topUrls.forEach { result ->
-        val normalizedMedian = (result.median.toFloat() / maxMedian) * 100
 
-        // Line with URL and progress bar
+    if (resultData.isEmpty()) {
+        Text(
+            text = "No results available",
+            style = MaterialTheme.typography.body2,
+            color = Color.Gray
+        )
+        return
+    }
+
+    val topUrls = resultData.sortedByDescending { it.median }.take(5)
+    val maxMedian = topUrls.maxOfOrNull { it.median.toFloat() } ?: 1f
+
+    topUrls.forEach { result ->
+        val normalizedMedian = if (maxMedian > 0) (result.median.toFloat() / maxMedian) * 100 else 0f
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // URL
             BasicText(text = result.url, modifier = Modifier.weight(1f))
 
-            // Progress bar
             Box(
                 modifier = Modifier
                     .weight(3f)
@@ -96,7 +103,6 @@ fun buildTopUrls(resultData: List<TestCaseResult>) {
                 )
             }
 
-            // Median
             BasicText(text = "Median: ${result.median} ms", modifier = Modifier.weight(1f))
         }
     }
@@ -115,11 +121,17 @@ fun tableCell(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun simpleTable(resultData: List<TestCaseResult>) {
+    if (resultData.isEmpty()) {
+        Text(
+            text = "No data to display",
+            style = MaterialTheme.typography.body2,
+            color = Color.Gray
+        )
+        return
+    }
 
-    // fold/unfold state per url
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
 
-    // Headers
     Row(modifier = Modifier.fillMaxWidth().background(Color.LightGray)) {
         tableCell("", modifier = Modifier.weight(0.4f)) // колонка под кнопку
         tableCell("URL", modifier = Modifier.weight(3f))

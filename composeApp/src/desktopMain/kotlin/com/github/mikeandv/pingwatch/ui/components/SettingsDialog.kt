@@ -11,9 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.entity.TestCaseSettings
-import com.github.mikeandv.pingwatch.handlers.handleMaxFileSizeInputChange
-import com.github.mikeandv.pingwatch.handlers.handleMaxLinesLimitInputChange
+import com.github.mikeandv.pingwatch.domain.TestCaseSettings
+import com.github.mikeandv.pingwatch.ui.handlers.handleMaxFileSizeInputChange
+import com.github.mikeandv.pingwatch.ui.handlers.handleMaxLinesLimitInputChange
 
 @Composable
 fun SettingsDialog(

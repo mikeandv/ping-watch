@@ -1,4 +1,4 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.result
 
 data class RequestTimings(
     val url: String,

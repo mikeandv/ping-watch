@@ -1,4 +1,4 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.domain
 
 class TestCaseParams(
     val isEdit: Boolean,

@@ -1,11 +1,11 @@
 package com.github.mikeandv.pingwatch.ui.viewmodels
 
-import com.github.mikeandv.pingwatch.RunType
-import com.github.mikeandv.pingwatch.convertMillisToTime
-import com.github.mikeandv.pingwatch.entity.ExecutionMode
-import com.github.mikeandv.pingwatch.entity.TestCase
-import com.github.mikeandv.pingwatch.entity.TestCaseParams
-import com.github.mikeandv.pingwatch.entity.TestCaseSettings
+import com.github.mikeandv.pingwatch.utils.convertMillisToTime
+import com.github.mikeandv.pingwatch.domain.TestCase
+import com.github.mikeandv.pingwatch.domain.TestCaseParams
+import com.github.mikeandv.pingwatch.domain.TestCaseSettings
+import com.github.mikeandv.pingwatch.domain.ExecutionMode
+import com.github.mikeandv.pingwatch.domain.RunType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 

@@ -1,4 +1,4 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.domain
 
 sealed interface TestEvent {
     data class Started(
@@ -6,6 +6,6 @@ sealed interface TestEvent {
         val durationMs: Long?
     ) : TestEvent
 
-    object RequestCompleted : TestEvent
+    data class RequestCompleted(val url: String) : TestEvent
     object Finished : TestEvent
 }

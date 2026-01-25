@@ -1,10 +1,8 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.domain
 
-import com.github.mikeandv.pingwatch.aggregator.UrlAvgAggregator
+import com.github.mikeandv.pingwatch.result.UrlAvgAggregator
 import com.github.mikeandv.pingwatch.listener.TimingEventListenerFactory
-import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
 
 class TestCaseSettings private constructor(
     val maxFileSize: Int,
@@ -21,7 +19,7 @@ class TestCaseSettings private constructor(
 
             val client = OkHttpClient.Builder()
                 .cache(null)
-                .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
+//                .connectionPool(ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
                 .eventListenerFactory(TimingEventListenerFactory { agg.add(it) })
                 .build()
             return TestCaseSettings(

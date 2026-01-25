@@ -2,13 +2,18 @@ package com.github.mikeandv.pingwatch.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.entity.ExecutionMode
+import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
+import com.github.mikeandv.pingwatch.domain.TestCaseState
+import com.github.mikeandv.pingwatch.domain.ExecutionMode
 
 @Composable
 fun ParametersSection(
+    testCaseState: TestCaseState,
     url: String,
     onUrlChange: (String) -> Unit,
     urlErrorMessage: String?,
@@ -22,13 +27,16 @@ fun ParametersSection(
     onTimeInputChange: (String) -> Unit,
     onCountInputChange: (String) -> Unit,
     progress: Long,
-    isDurationCountEnabled: Boolean,
+    isEnabled: Boolean,
     executionMode: ExecutionMode,
     onExecutionModeChange: (ExecutionMode) -> Unit,
     parallelismInput: String,
     parallelismError: String?,
     onParallelismChange: (String) -> Unit
 ) {
+    val status by testCaseState.status.collectAsState()
+    val isNotRunning = checkIsNotRunningStatus(status)
+
     Column(
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
@@ -44,7 +52,7 @@ fun ParametersSection(
                 timeInput = timeInput,
                 onTimeInputChange = onTimeInputChange,
                 onCountInputChange = onCountInputChange,
-                enabled = isDurationCountEnabled
+                enabled = isEnabled && isNotRunning
             )
 
             Spacer(modifier = Modifier.width(32.dp))
@@ -55,7 +63,7 @@ fun ParametersSection(
                 parallelismInput = parallelismInput,
                 parallelismError = parallelismError,
                 onParallelismChange = onParallelismChange,
-                enabled = isDurationCountEnabled
+                enabled = isEnabled && isNotRunning
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -70,7 +78,8 @@ fun ParametersSection(
             onUrlChange = onUrlChange,
             urlErrorMessage = urlErrorMessage,
             onAddUrl = onAddUrl,
-            onImport = onImport
+            onImport = onImport,
+            enabled = isNotRunning
         )
     }
 }

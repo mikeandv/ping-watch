@@ -13,13 +13,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.StatusCode
-import com.github.mikeandv.pingwatch.entity.TestCase
+import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
+import com.github.mikeandv.pingwatch.domain.TestCaseState
+import com.github.mikeandv.pingwatch.domain.StatusCode
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Composable
 fun FlowControlButtons(
-    testCase: TestCase,
+    testCaseState: TestCaseState,
     onLaunchTest: () -> Unit,
     onNavigate: () -> Unit,
     cancelFlag: AtomicBoolean,
@@ -27,13 +28,13 @@ fun FlowControlButtons(
     updateDialogMessage: (String) -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    val status by testCase.testCaseState.status.collectAsState()
+    val status by testCaseState.status.collectAsState()
     val isRunning = status == StatusCode.RUNNING
-    val canLaunch = status == StatusCode.FINISHED || status == StatusCode.CREATED
+    val isNotRunning = checkIsNotRunningStatus(status)
     val canViewResult = status == StatusCode.FINISHED
 
     Row {
-        LaunchButton(enabled = canLaunch, onClick = onLaunchTest)
+        LaunchButton(enabled = isNotRunning, onClick = onLaunchTest)
         Spacer(modifier = Modifier.width(8.dp))
         CancelButton(enabled = isRunning) {
             cancelFlag.set(true)
@@ -45,7 +46,7 @@ fun FlowControlButtons(
             Text("Get Result")
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Button(onClick = onSettingsClick, enabled = canLaunch) {
+        Button(onClick = onSettingsClick, enabled = isNotRunning) {
             Text("Settings")
         }
     }

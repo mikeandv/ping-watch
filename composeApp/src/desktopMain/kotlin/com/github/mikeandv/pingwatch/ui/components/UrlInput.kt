@@ -20,7 +20,8 @@ fun UrlInput(
     onUrlChange: (String) -> Unit,
     urlErrorMessage: String?,
     onAddUrl: () -> Unit,
-    onImport: () -> Unit
+    onImport: () -> Unit,
+    enabled: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -31,11 +32,12 @@ fun UrlInput(
             value = url,
             onValueChange = onUrlChange,
             singleLine = true,
+            enabled = enabled,
             cursorBrush = SolidColor(MaterialTheme.colors.primary),
             modifier = Modifier
                 .weight(1f)
                 .height(36.dp)
-                .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+                .border(1.dp, if (enabled) Color.Gray else Color.LightGray, RoundedCornerShape(4.dp))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             decorationBox = { innerTextField ->
                 Box(
@@ -54,11 +56,11 @@ fun UrlInput(
             }
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Button(onClick = onAddUrl, enabled = url.isNotEmpty() && urlErrorMessage == null) {
+        Button(onClick = onAddUrl, enabled = url.isNotEmpty() && urlErrorMessage == null && enabled) {
             Text("Add URL")
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Button(onClick = onImport) {
+        Button(onClick = onImport, enabled = enabled) {
             Text("Import..")
         }
     }

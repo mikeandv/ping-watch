@@ -1,4 +1,4 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.ui.utils
 
 data class LaunchValidationResult(
     val isValid: Boolean,

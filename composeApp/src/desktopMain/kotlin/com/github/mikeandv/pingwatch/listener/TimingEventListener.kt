@@ -1,6 +1,6 @@
 package com.github.mikeandv.pingwatch.listener
 
-import com.github.mikeandv.pingwatch.entity.RequestTimings
+import com.github.mikeandv.pingwatch.result.RequestTimings
 import okhttp3.*
 import java.io.IOException
 import java.net.InetAddress

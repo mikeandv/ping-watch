@@ -1,7 +1,5 @@
-package com.github.mikeandv.pingwatch.aggregator
+package com.github.mikeandv.pingwatch.result
 
-import com.github.mikeandv.pingwatch.entity.RequestTimings
-import com.github.mikeandv.pingwatch.entity.UrlAvgMetrics
 import java.util.concurrent.ConcurrentHashMap
 
 class UrlAvgAggregator {

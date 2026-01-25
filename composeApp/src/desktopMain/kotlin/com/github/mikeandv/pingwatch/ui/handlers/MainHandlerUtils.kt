@@ -1,7 +1,12 @@
-package com.github.mikeandv.pingwatch.handlers
+package com.github.mikeandv.pingwatch.ui.handlers
 
-import com.github.mikeandv.pingwatch.RunType
-import com.github.mikeandv.pingwatch.entity.*
+import com.github.mikeandv.pingwatch.domain.*
+import com.github.mikeandv.pingwatch.domain.ExecutionMode
+import com.github.mikeandv.pingwatch.domain.RunType
+import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
+import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
+import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
+import com.github.mikeandv.pingwatch.ui.utils.LaunchValidationResult
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 fun validateUrlsFile(

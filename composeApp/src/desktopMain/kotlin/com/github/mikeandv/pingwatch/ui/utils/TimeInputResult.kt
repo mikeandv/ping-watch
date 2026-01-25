@@ -1,4 +1,4 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.ui.utils
 
 sealed class TimeInputResult {
     data class Empty(

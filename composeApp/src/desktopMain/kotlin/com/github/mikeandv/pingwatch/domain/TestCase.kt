@@ -1,7 +1,7 @@
-package com.github.mikeandv.pingwatch.entity
+package com.github.mikeandv.pingwatch.domain
 
-import com.github.mikeandv.pingwatch.RunType
 import com.github.mikeandv.pingwatch.processor.runR
+import com.github.mikeandv.pingwatch.result.TestCaseResult
 import kotlinx.coroutines.flow.*
 
 class TestCase(
@@ -52,7 +52,7 @@ class TestCase(
                         startedAt = now()
                     )
 
-                TestEvent.RequestCompleted ->
+                is TestEvent.RequestCompleted ->
                     state.copy(completed = state.completed + 1)
 
                 TestEvent.Finished ->
@@ -70,6 +70,22 @@ class TestCase(
 
                 else -> null
             }
+        }.distinctUntilChanged()
+    }
+
+    fun urlProgressFlow(url: String): Flow<Int> {
+        val total = urls[url]?.countValue ?: 0
+        if (total == 0L) return emptyFlow()
+
+        return events.runningFold(0L) { completed, event ->
+            when (event) {
+                is TestEvent.RequestCompleted ->
+                    if (event.url == url) completed + 1 else completed
+
+                else -> completed
+            }
+        }.map { completed ->
+            ((completed * 100) / total).toInt()
         }.distinctUntilChanged()
     }
 
