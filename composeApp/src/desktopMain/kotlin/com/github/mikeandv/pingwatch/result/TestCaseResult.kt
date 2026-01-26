@@ -1,94 +1,85 @@
 package com.github.mikeandv.pingwatch.result
 
-import com.github.mikeandv.pingwatch.domain.ResponseData
+import com.github.mikeandv.pingwatch.domain.ErrorType
 
 class TestCaseResult private constructor(
     val url: String,
     val totalRequestCount: Int,
     val successRequestCount: Int,
     val errorRequestCount: Int,
-    val min: Long,
-    val max: Long,
-    val avg: Double,
-    val median: Long,
-    val p95: Long,
-    val p99: Long,
-
-    val dnsMs: Long?,
-    val connectMs: Long?,
-    val tlsMs: Long?,
-    val requestHeadersMs: Long?,
-    val requestBodyMs: Long?,
-    val responseHeadersMs: Long?,
-    val responseBodyMs: Long?
+    val errorsByType: Map<ErrorType, Int>,
+    val duration: MetricStatistics,
+    val dns: MetricStatistics?,
+    val connect: MetricStatistics?,
+    val tls: MetricStatistics?,
+    val requestHeaders: MetricStatistics?,
+    val requestBody: MetricStatistics?,
+    val responseHeaders: MetricStatistics?,
+    val responseBody: MetricStatistics?
 ) {
+    // Convenience accessors for duration metrics (backward compatibility)
+    val min: Long get() = duration.min
+    val max: Long get() = duration.max
+    val avg: Double get() = duration.avg
+    val median: Long get() = duration.median
+    val p95: Long get() = duration.p95
+    val p99: Long get() = duration.p99
+
     companion object {
-        fun create(data: List<ResponseData>, metricsByUrl: Map<String, UrlAvgMetrics>): List<TestCaseResult> {
+        fun create(timings: List<RequestTimings>): List<TestCaseResult> {
             val resultCalc = mutableListOf<TestCaseResult>()
 
-            val parsedData = data.groupBy { it.url }
-                .mapValues { (_, results) ->
-                    results.groupBy { it.statusCode }
-                        .mapValues { (_, reqs) -> reqs.map { it.duration } }
-                }
+            val groupedByUrl = timings.groupBy { it.url }
 
-            for ((key, value) in parsedData) {
-                resultCalc.add(createInstance(key, value, metricsByUrl[key]))
+            for ((url, urlTimings) in groupedByUrl) {
+                resultCalc.add(createInstance(url, urlTimings))
             }
 
             return resultCalc.toList()
         }
 
-        private fun createInstance(url: String, data: Map<Int, List<Long>>, metrics: UrlAvgMetrics?): TestCaseResult {
-            val totalRequestCountCalc = data.values.sumOf { it.size }
-            val successDurations = data
-                .filterKeys { it in 200..399 }
-                .values
-                .flatten()
-                .sorted()
+        private fun createInstance(url: String, timings: List<RequestTimings>): TestCaseResult {
+            val totalRequestCountCalc = timings.size
+
+            // Success = status code 200-399
+            val successTimings = timings.filter { it.success && it.statusCode != null && it.statusCode in 200..399 }
+            val successDurations = successTimings.map { it.callMs }
 
             val successRequestCountCalc = successDurations.size
             val errorRequestCountCalc = totalRequestCountCalc - successRequestCountCalc
 
-            val minCalc = successDurations.minOrNull() ?: 0L
-            val maxCalc = successDurations.maxOrNull() ?: 0L
-            val avgCalc = if (successDurations.isEmpty()) 0.0 else successDurations.average()
-            val medianCalc = calculatePercentile(successDurations, 50.0)
-            val p95Calc = calculatePercentile(successDurations, 95.0)
-            val p99Calc = calculatePercentile(successDurations, 99.0)
+            // Error breakdown by type
+            val errorsByType = timings.filter { it.errorType != ErrorType.NONE }
+                .groupBy { it.errorType }
+                .mapValues { it.value.size }
+
+            // Duration statistics from successful requests
+            val durationStats = MetricStatistics.fromValues(successDurations) ?: MetricStatistics.EMPTY
+
+            // Network breakdown statistics from all timings
+            val dnsStats = MetricStatistics.fromValues(timings.mapNotNull { it.dnsMs })
+            val connectStats = MetricStatistics.fromValues(timings.mapNotNull { it.connectMs })
+            val tlsStats = MetricStatistics.fromValues(timings.mapNotNull { it.tlsMs })
+            val reqHeadersStats = MetricStatistics.fromValues(timings.mapNotNull { it.requestHeadersMs })
+            val reqBodyStats = MetricStatistics.fromValues(timings.mapNotNull { it.requestBodyMs })
+            val respHeadersStats = MetricStatistics.fromValues(timings.mapNotNull { it.responseHeadersMs })
+            val respBodyStats = MetricStatistics.fromValues(timings.mapNotNull { it.responseBodyMs })
+
             return TestCaseResult(
                 url,
                 totalRequestCountCalc,
                 successRequestCountCalc,
                 errorRequestCountCalc,
-                minCalc,
-                maxCalc,
-                avgCalc,
-                medianCalc,
-                p95Calc,
-                p99Calc,
-
-                dnsMs = metrics?.dnsAvgMs?.toLong(),
-                connectMs = metrics?.connectAvgMs?.toLong(),
-                tlsMs = metrics?.tlsAvgMs?.toLong(),
-                requestHeadersMs = metrics?.requestHeadersAvgMs?.toLong(),
-                requestBodyMs = metrics?.requestBodyAvgMs?.toLong(),
-                responseHeadersMs = metrics?.responseHeadersAvgMs?.toLong(),
-                responseBodyMs = metrics?.responseBodyAvgMs?.toLong()
+                errorsByType,
+                duration = durationStats,
+                dns = dnsStats,
+                connect = connectStats,
+                tls = tlsStats,
+                requestHeaders = reqHeadersStats,
+                requestBody = reqBodyStats,
+                responseHeaders = respHeadersStats,
+                responseBody = respBodyStats
             )
-        }
-
-        private fun calculatePercentile(sortedList: List<Long>?, percentile: Double): Long {
-            if (sortedList.isNullOrEmpty()) {
-                println("Sorted list cannot be null or empty!")
-                return 0L
-            }
-            if (percentile !in 0.0..100.0) {
-                println("Percentile must be number between 0 and 100")
-                return 0L
-            }
-            val index = (percentile / 100.0 * sortedList.size).toInt().coerceAtMost(sortedList.size - 1)
-            return sortedList[index]
         }
     }
 

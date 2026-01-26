@@ -52,7 +52,10 @@ fun SettingsDialog(
                         value = maxLinesLimitInput,
                         error = maxLinesLimitError,
                         onValueChange = { input ->
-                            handleMaxLinesLimitInputChange(input, { maxLinesLimitInput = it }, { maxLinesLimitError = it })
+                            handleMaxLinesLimitInputChange(
+                                input,
+                                { maxLinesLimitInput = it },
+                                { maxLinesLimitError = it })
                         }
                     )
 
@@ -68,13 +71,16 @@ fun SettingsDialog(
                     onClick = {
                         val maxFileSize = maxFileSizeInput.toIntOrNull() ?: settings.maxFileSize
                         val maxLinesLimit = maxLinesLimitInput.toIntOrNull() ?: settings.maxLinesLimit
-                        onSave(settings.copy(
-                            maxFileSize = maxFileSize,
-                            maxLinesLimit = maxLinesLimit,
-                            allowedFileExtensions = selectedExtensions.toList()
-                        ))
+                        onSave(
+                            settings.copy(
+                                maxFileSize = maxFileSize,
+                                maxLinesLimit = maxLinesLimit,
+                                allowedFileExtensions = selectedExtensions.toList()
+                            )
+                        )
                     },
-                    enabled = maxFileSizeError == null && maxLinesLimitError == null && selectedExtensions.isNotEmpty()
+                    enabled = maxFileSizeError == null && maxLinesLimitError == null &&
+                            selectedExtensions.isNotEmpty()
                 ) {
                     Text("Save")
                 }

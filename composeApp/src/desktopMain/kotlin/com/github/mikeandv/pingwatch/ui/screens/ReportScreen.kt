@@ -9,60 +9,47 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.github.mikeandv.pingwatch.result.MetricStatistics
 import com.github.mikeandv.pingwatch.result.TestCaseResult
+import com.github.mikeandv.pingwatch.ui.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
-
 
 @Composable
 fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
-
     val testCase by viewModel.testCase.collectAsState()
     val scrollState = rememberScrollState()
 
     MaterialTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(end = 12.dp)
-                        .verticalScroll(scrollState),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
 
-                ) {
-                    Button(onClick = onNavigateBack) {
-                        Text("Back to Home")
-                    }
-                    Divider(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        color = Color.LightGray,
-                        thickness = 1.dp
-                    )
-                    buildTopUrls(testCase.testCaseResult)
-                    Divider(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        color = Color.LightGray,
-                        thickness = 1.dp
-                    )
-                    simpleTable(testCase.testCaseResult)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(scrollState),
+            ) {
+                Button(onClick = onNavigateBack) {
+                    Text("Back to Home")
                 }
-                VerticalScrollbar(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    adapter = rememberScrollbarAdapter(scrollState)
+                Divider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    color = Color.LightGray,
+                    thickness = 1.dp
                 )
+                TopUrlsSection(testCase.testCaseResult)
+                Spacer(modifier = Modifier.height(16.dp))
+                ResultsTable(testCase.testCaseResult)
             }
+            VerticalScrollbar(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                adapter = rememberScrollbarAdapter(scrollState)
+            )
         }
+
     }
 }
 
 @Composable
-fun buildTopUrls(resultData: List<TestCaseResult>) {
+private fun TopUrlsSection(resultData: List<TestCaseResult>) {
     Text(
         text = "Top 5 URLs by Median Response Time",
         style = MaterialTheme.typography.subtitle1,
@@ -77,11 +64,11 @@ fun buildTopUrls(resultData: List<TestCaseResult>) {
         return
     }
 
-    val topUrls = resultData.sortedByDescending { it.median }.take(5)
+    val topUrls = getTopUrlsByMedian(resultData)
     val maxMedian = topUrls.maxOfOrNull { it.median.toFloat() } ?: 1f
 
     topUrls.forEach { result ->
-        val normalizedMedian = if (maxMedian > 0) (result.median.toFloat() / maxMedian) * 100 else 0f
+        val normalizedMedian = calculateNormalizedMedian(result.median, maxMedian)
 
         Row(
             modifier = Modifier
@@ -109,18 +96,16 @@ fun buildTopUrls(resultData: List<TestCaseResult>) {
 }
 
 @Composable
-fun tableCell(text: String, modifier: Modifier = Modifier) {
+private fun TableCell(text: String, modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-//            .border(1.dp, Color.Gray)
-            .padding(8.dp)
+        modifier = modifier.padding(4.dp)
     ) {
-        Text(text, style = MaterialTheme.typography.body1)
+        Text(text, style = MaterialTheme.typography.body2)
     }
 }
 
 @Composable
-fun simpleTable(resultData: List<TestCaseResult>) {
+private fun ResultsTable(resultData: List<TestCaseResult>) {
     if (resultData.isEmpty()) {
         Text(
             text = "No data to display",
@@ -132,79 +117,103 @@ fun simpleTable(resultData: List<TestCaseResult>) {
 
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
 
-    Row(modifier = Modifier.fillMaxWidth().background(Color.LightGray)) {
-        tableCell("", modifier = Modifier.weight(0.4f)) // колонка под кнопку
-        tableCell("URL", modifier = Modifier.weight(3f))
-        tableCell("Total", modifier = Modifier.weight(1f))
-        tableCell("Errors", modifier = Modifier.weight(1f))
-        tableCell("Min", modifier = Modifier.weight(1f))
-        tableCell("Max", modifier = Modifier.weight(1f))
-        tableCell("Avg", modifier = Modifier.weight(1f))
-        tableCell("Median", modifier = Modifier.weight(1f))
-        tableCell("P95", modifier = Modifier.weight(1f))
-        tableCell("P99", modifier = Modifier.weight(1f))
-    }
+    TableHeader()
 
     resultData.forEachIndexed { index, row ->
         val rowColor = if (index % 2 == 0) Color(0xFFE0E0E0) else Color.White
         val isExpanded = expanded[row.url] == true
 
-        // Main row
-        Row(modifier = Modifier.fillMaxWidth().background(rowColor)) {
+        ResultRow(
+            result = row,
+            rowColor = rowColor,
+            isExpanded = isExpanded,
+            onExpandToggle = { expanded[row.url] = !isExpanded }
+        )
 
-            // Expand/collapse button
-            Box(
-                modifier = Modifier
-                    .weight(0.4f),
-//                    .border(1.dp, Color.Gray),
-                contentAlignment = Alignment.Center
-            ) {
-                TextButton(onClick = { expanded[row.url] = !isExpanded }) {
-                    Text(if (isExpanded) "−" else "+")
-                }
+        if (isExpanded) {
+            ExpandedDetailsSection(result = row, rowColor = rowColor)
+        }
+    }
+}
+
+@Composable
+private fun TableHeader() {
+    Row(modifier = Modifier.fillMaxWidth().background(Color.LightGray)) {
+        TableCell("", modifier = Modifier.weight(TableColumnWeights.EXPAND_BUTTON))
+        TableCell("URL", modifier = Modifier.weight(TableColumnWeights.URL))
+        TableCell("Total", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("Errors", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("Min", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("Max", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("Avg", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("Median", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("P95", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("P99", modifier = Modifier.weight(TableColumnWeights.METRIC))
+    }
+}
+
+@Composable
+private fun ResultRow(
+    result: TestCaseResult,
+    rowColor: Color,
+    isExpanded: Boolean,
+    onExpandToggle: () -> Unit
+) {
+    Row(modifier = Modifier.fillMaxWidth().background(rowColor).padding(8.dp)) {
+        Box(
+            modifier = Modifier.weight(TableColumnWeights.EXPAND_BUTTON),
+            contentAlignment = Alignment.Center
+        ) {
+            TextButton(onClick = onExpandToggle) {
+                Text(if (isExpanded) "−" else "+")
             }
-
-            tableCell(row.url, modifier = Modifier.weight(3f))
-            tableCell("${row.totalRequestCount}", modifier = Modifier.weight(1f))
-            tableCell("${row.errorRequestCount}", modifier = Modifier.weight(1f))
-            tableCell("${row.min}", modifier = Modifier.weight(1f))
-            tableCell("${row.max}", modifier = Modifier.weight(1f))
-            tableCell("%.2f".format(row.avg), modifier = Modifier.weight(1f))
-            tableCell("${row.median}", modifier = Modifier.weight(1f))
-            tableCell("${row.p95}", modifier = Modifier.weight(1f))
-            tableCell("${row.p99}", modifier = Modifier.weight(1f))
         }
 
-        // Expanded details row (your new metrics)
-        if (isExpanded) {
-            Row(modifier = Modifier.fillMaxWidth().background(rowColor)) {
-                // пустая колонка под кнопку
-                tableCell("", modifier = Modifier.weight(0.4f))
+        TableCell(result.url, modifier = Modifier.weight(TableColumnWeights.URL))
+        TableCell("${result.totalRequestCount}", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("${result.errorRequestCount}", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(result.min), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(result.max), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(result.avg), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(result.median), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(result.p95), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(result.p99), modifier = Modifier.weight(TableColumnWeights.METRIC))
+    }
+}
 
-                // один широкий cell на всю остальную ширину
-                Box(
-                    modifier = Modifier
-                        .weight(3f + 1f + 1f + 1f + 1f + 1f + 1f + 1f + 1f) // сумма весов остальных колонок
-//                        .border(1.dp, Color.Gray)
-                        .padding(8.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Network breakdown (avg):", style = MaterialTheme.typography.subtitle2)
+@Composable
+private fun ExpandedDetailsSection(result: TestCaseResult, rowColor: Color) {
+    Column(modifier = Modifier.fillMaxWidth().background(rowColor).padding(8.dp)) {
+        Text("Network breakdown:", style = MaterialTheme.typography.subtitle2)
 
-                        // helper чтобы красиво печатать null
-                        fun fmt(v: Long?) = v?.let { "${it} ms" } ?: "—"
+        getNetworkMetrics(result).forEach { metric ->
+            NetworkMetricRow(metric.label, metric.stats)
+        }
 
-                        Text("DNS: ${fmt(row.dnsMs)}")
-                        Text("Connect: ${fmt(row.connectMs)}")
-                        Text("TLS: ${fmt(row.tlsMs)}")
-                        Text("Req headers: ${fmt(row.requestHeadersMs)}")
-                        Text("Req body: ${fmt(row.requestBodyMs)}")
-                        Text("Resp headers: ${fmt(row.responseHeadersMs)}")
-                        Text("Resp body: ${fmt(row.responseBodyMs)}")
-                    }
-                }
+        if (result.errorsByType.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Error breakdown:", style = MaterialTheme.typography.subtitle2)
+
+            result.errorsByType.forEach { (errorType, count) ->
+                Text("${errorTypeLabel(errorType)}: $count", style = MaterialTheme.typography.body2)
             }
         }
     }
 }
 
+@Composable
+private fun NetworkMetricRow(label: String, stats: MetricStatistics?) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        TableCell("", modifier = Modifier.weight(TableColumnWeights.EXPAND_BUTTON))
+        TableCell(" ", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(label, modifier = Modifier.weight(TableColumnWeights.LABEL))
+        TableCell("—", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("—", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(stats?.min), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(stats?.max), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(stats?.avg), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(stats?.median), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(stats?.p95), modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell(formatMetricValue(stats?.p99), modifier = Modifier.weight(TableColumnWeights.METRIC))
+    }
+}

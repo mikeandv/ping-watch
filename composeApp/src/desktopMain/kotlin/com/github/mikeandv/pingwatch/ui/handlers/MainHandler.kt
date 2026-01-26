@@ -1,10 +1,11 @@
 package com.github.mikeandv.pingwatch.ui.handlers
 
-import com.github.mikeandv.pingwatch.domain.*
 import com.github.mikeandv.pingwatch.domain.ExecutionMode
+import com.github.mikeandv.pingwatch.domain.TestCase
+import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
-import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
 import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
+import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -260,7 +261,6 @@ fun handleMaxLinesLimitInputChange(
     updateErrorMessage: (String?) -> Unit
 ) = handleIntInputChange(input, updateMaxLinesLimitInput, updateErrorMessage, ::processMaxLinesLimitInput)
 
-
 fun handleLaunchTest(
     testCase: TestCase,
     isDuration: Boolean,
@@ -286,7 +286,7 @@ fun handleLaunchTest(
     }
 
     resetCancelFlag()
-    updateProgress(0)
+//    updateProgress(0)
 
     val tmpTestCase = buildTestCase(testCase, urlList, isDuration, executionMode, parallelism)
     onUpdateTestCase(tmpTestCase)

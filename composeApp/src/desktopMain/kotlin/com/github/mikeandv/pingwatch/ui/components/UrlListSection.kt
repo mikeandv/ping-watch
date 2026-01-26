@@ -13,11 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
 import com.github.mikeandv.pingwatch.domain.TestCase
 import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTestCountChange
 import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTimeInputChange
+import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
@@ -43,10 +43,10 @@ fun UrlListSection(
         modifier = modifier
             .fillMaxWidth()
             .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
-            .padding(10.dp)
+            .padding(8.dp)
     ) {
         Column(
-            modifier = Modifier.padding(end = 12.dp).verticalScroll(scrollState)
+            modifier = Modifier.padding(end = 24.dp).verticalScroll(scrollState)
         ) {
             UrlListColumn(
                 urlList = urlList,
@@ -137,7 +137,7 @@ private fun UrlListItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(url, modifier = Modifier.weight(1f))
+        Text(url, modifier = Modifier.weight(1f), style = MaterialTheme.typography.body2)
         Spacer(modifier = Modifier.width(16.dp))
 
         if (!isDuration) {
@@ -145,7 +145,7 @@ private fun UrlListItem(
             Spacer(modifier = Modifier.width(16.dp))
         }
 
-        Text(text = "Edit")
+        Text(text = "Edit", style = MaterialTheme.typography.body2)
         Spacer(modifier = Modifier.width(8.dp))
         Switch(
             checked = isChecked,

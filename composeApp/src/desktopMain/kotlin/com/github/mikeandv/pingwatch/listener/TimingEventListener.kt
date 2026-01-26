@@ -1,5 +1,6 @@
 package com.github.mikeandv.pingwatch.listener
 
+import com.github.mikeandv.pingwatch.domain.ErrorType
 import com.github.mikeandv.pingwatch.result.RequestTimings
 import okhttp3.*
 import java.io.IOException
@@ -13,6 +14,7 @@ class TimingEventListener(private val onFinished: (RequestTimings) -> Unit) : Ev
     private var url: String = ""
     private var statusCode: Int? = null
     private var error: String? = null
+    private var errorType: ErrorType = ErrorType.NONE
     private var success: Boolean = false
 
     private var callStartNs: Long = 0
@@ -96,14 +98,24 @@ class TimingEventListener(private val onFinished: (RequestTimings) -> Unit) : Ev
     }
 
     override fun callEnd(call: Call) {
-        success = true
         callEndNs = System.nanoTime()
+        // Classify based on HTTP status code
+        statusCode?.let { code ->
+            errorType = ErrorType.fromStatusCode(code)
+            success = errorType == ErrorType.NONE
+            if (!success) {
+                error = "HTTP $code"
+            }
+        } ?: run {
+            success = true
+        }
         publish()
     }
 
     override fun callFailed(call: Call, ioe: IOException) {
         success = false
         error = ioe.message ?: ioe.javaClass.simpleName
+        errorType = ErrorType.fromException(ioe)
         callEndNs = System.nanoTime()
         publish()
     }
@@ -115,6 +127,7 @@ class TimingEventListener(private val onFinished: (RequestTimings) -> Unit) : Ev
                 success = success,
                 statusCode = statusCode,
                 error = error,
+                errorType = errorType,
                 callMs = ms(callEndNs - callStartNs),
                 dnsMs = dur(dnsS, dnsE),
                 connectMs = dur(connS, connE),
