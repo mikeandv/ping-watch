@@ -8,12 +8,12 @@ data class RequestTimings(
     val statusCode: Int?,
     val error: String?,
     val errorType: ErrorType = ErrorType.NONE,
-    val callMs: Long,
-    val dnsMs: Long?,
-    val connectMs: Long?,
-    val tlsMs: Long?,
-    val requestHeadersMs: Long?,
-    val requestBodyMs: Long?,
-    val responseHeadersMs: Long?,
-    val responseBodyMs: Long?
+    val callMs: Double,
+    val dnsMs: Double?,
+    val connectMs: Double?,
+    val tlsMs: Double?,
+    val requestHeadersMs: Double?,
+    val requestBodyMs: Double?,
+    val responseHeadersMs: Double?,
+    val responseBodyMs: Double?
 )

@@ -7,7 +7,8 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Proxy
-import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.nanoseconds
+import kotlin.time.DurationUnit
 
 class TimingEventListener(private val onFinished: (RequestTimings) -> Unit) : EventListener() {
 
@@ -140,8 +141,8 @@ class TimingEventListener(private val onFinished: (RequestTimings) -> Unit) : Ev
         )
     }
 
-    private fun dur(s: Long?, e: Long?): Long? = if (s != null && e != null) ms(e - s) else null
-    private fun ms(ns: Long): Long = TimeUnit.NANOSECONDS.toMillis(ns)
+    private fun dur(s: Long?, e: Long?): Double? = if (s != null && e != null) ms(e - s) else null
+    private fun ms(ns: Long): Double = ns.nanoseconds.toDouble(DurationUnit.MILLISECONDS)
 }
 
 

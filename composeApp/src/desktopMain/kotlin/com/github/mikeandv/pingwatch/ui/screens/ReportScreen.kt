@@ -65,7 +65,7 @@ private fun TopUrlsSection(resultData: List<TestCaseResult>) {
     }
 
     val topUrls = getTopUrlsByMedian(resultData)
-    val maxMedian = topUrls.maxOfOrNull { it.median.toFloat() } ?: 1f
+    val maxMedian = topUrls.maxOfOrNull { it.median } ?: 0.0
 
     topUrls.forEach { result ->
         val normalizedMedian = calculateNormalizedMedian(result.median, maxMedian)
@@ -84,7 +84,7 @@ private fun TopUrlsSection(resultData: List<TestCaseResult>) {
                     .padding(end = 8.dp)
             ) {
                 LinearProgressIndicator(
-                    progress = normalizedMedian / 100f,
+                    progress = (normalizedMedian / 100).toFloat(),
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colors.primary
                 )
@@ -207,8 +207,8 @@ private fun NetworkMetricRow(label: String, stats: MetricStatistics?) {
         TableCell("", modifier = Modifier.weight(TableColumnWeights.EXPAND_BUTTON))
         TableCell(" ", modifier = Modifier.weight(TableColumnWeights.METRIC))
         TableCell(label, modifier = Modifier.weight(TableColumnWeights.LABEL))
-        TableCell("—", modifier = Modifier.weight(TableColumnWeights.METRIC))
-        TableCell("—", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("-", modifier = Modifier.weight(TableColumnWeights.METRIC))
+        TableCell("-", modifier = Modifier.weight(TableColumnWeights.METRIC))
         TableCell(formatMetricValue(stats?.min), modifier = Modifier.weight(TableColumnWeights.METRIC))
         TableCell(formatMetricValue(stats?.max), modifier = Modifier.weight(TableColumnWeights.METRIC))
         TableCell(formatMetricValue(stats?.avg), modifier = Modifier.weight(TableColumnWeights.METRIC))

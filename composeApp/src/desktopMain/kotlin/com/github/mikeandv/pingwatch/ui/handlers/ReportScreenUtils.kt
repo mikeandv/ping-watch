@@ -24,9 +24,7 @@ fun errorTypeLabel(type: ErrorType): String = when (type) {
     ErrorType.HTTP_SERVER_ERROR -> "HTTP 5xx"
 }
 
-fun formatMetricValue(value: Long?): String = value?.toString() ?: "—"
-
-fun formatMetricValue(value: Double?): String = value?.let { "%.2f".format(it) } ?: "—"
+fun formatMetricValue(value: Double?): String = value?.let { "%.3f".format(it) } ?: "-"
 
 data class NetworkMetricData(
     val label: String,
@@ -46,5 +44,5 @@ fun getNetworkMetrics(result: TestCaseResult): List<NetworkMetricData> = listOf(
 fun getTopUrlsByMedian(resultData: List<TestCaseResult>, limit: Int = 5): List<TestCaseResult> =
     resultData.sortedByDescending { it.median }.take(limit)
 
-fun calculateNormalizedMedian(median: Long, maxMedian: Float): Float =
-    if (maxMedian > 0) (median.toFloat() / maxMedian) * 100 else 0f
+fun calculateNormalizedMedian(median: Double, maxMedian: Double): Double =
+    if (maxMedian > 0) (median / maxMedian) * 100 else 0.0

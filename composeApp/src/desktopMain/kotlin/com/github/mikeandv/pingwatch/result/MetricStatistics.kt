@@ -1,17 +1,17 @@
 package com.github.mikeandv.pingwatch.result
 
 data class MetricStatistics(
-    val min: Long,
-    val max: Long,
+    val min: Double,
+    val max: Double,
     val avg: Double,
-    val median: Long,
-    val p95: Long,
-    val p99: Long
+    val median: Double,
+    val p95: Double,
+    val p99: Double
 ) {
     companion object {
-        val EMPTY = MetricStatistics(0L, 0L, 0.0, 0L, 0L, 0L)
+        val EMPTY = MetricStatistics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
-        fun fromValues(values: List<Long>): MetricStatistics? {
+        fun fromValues(values: List<Double>): MetricStatistics? {
             if (values.isEmpty()) return null
 
             val sorted = values.sorted()
@@ -25,9 +25,9 @@ data class MetricStatistics(
             )
         }
 
-        private fun calculatePercentile(sortedList: List<Long>, percentile: Double): Long {
-            if (sortedList.isEmpty()) return 0L
-            if (percentile !in 0.0..100.0) return 0L
+        private fun calculatePercentile(sortedList: List<Double>, percentile: Double): Double {
+            if (sortedList.isEmpty()) return 0.0
+            if (percentile !in 0.0..100.0) return 0.0
             val index = (percentile / 100.0 * sortedList.size).toInt().coerceAtMost(sortedList.size - 1)
             return sortedList[index]
         }

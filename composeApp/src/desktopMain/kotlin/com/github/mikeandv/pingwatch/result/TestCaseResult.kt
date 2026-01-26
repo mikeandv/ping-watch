@@ -18,12 +18,12 @@ class TestCaseResult private constructor(
     val responseBody: MetricStatistics?
 ) {
     // Convenience accessors for duration metrics (backward compatibility)
-    val min: Long get() = duration.min
-    val max: Long get() = duration.max
+    val min: Double get() = duration.min
+    val max: Double get() = duration.max
     val avg: Double get() = duration.avg
-    val median: Long get() = duration.median
-    val p95: Long get() = duration.p95
-    val p99: Long get() = duration.p99
+    val median: Double get() = duration.median
+    val p95: Double get() = duration.p95
+    val p99: Double get() = duration.p99
 
     companion object {
         fun create(timings: List<RequestTimings>): List<TestCaseResult> {
@@ -81,9 +81,5 @@ class TestCaseResult private constructor(
                 responseBody = respBodyStats
             )
         }
-    }
-
-    override fun toString(): String {
-        return "TestCaseResult(url='$url', totalRequestCount=$totalRequestCount, successRequestCount=$successRequestCount, errorRequestCount=$errorRequestCount, min=$min, max=$max, avg=$avg, median=$median, p95=$p95, p99=$p99)"
     }
 }

@@ -9,7 +9,7 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "PingWatch",
-        state = rememberWindowState(width = 800.dp, height = 800.dp)
+        state = rememberWindowState(width = 1024.dp, height = 768.dp)
     ) {
         App()
     }
