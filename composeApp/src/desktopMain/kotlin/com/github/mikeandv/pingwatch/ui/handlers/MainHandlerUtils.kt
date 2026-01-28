@@ -1,12 +1,10 @@
 package com.github.mikeandv.pingwatch.ui.handlers
 
-import com.github.mikeandv.pingwatch.domain.*
-import com.github.mikeandv.pingwatch.domain.ExecutionMode
-import com.github.mikeandv.pingwatch.domain.RunType
+import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
-import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
 import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
 import com.github.mikeandv.pingwatch.ui.utils.LaunchValidationResult
+import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 fun validateUrlsFile(
@@ -164,23 +162,3 @@ fun validateLaunchTest(
 
     return LaunchValidationResult(isValid = true)
 }
-
-fun buildTestCase(
-    original: TestCase,
-    urlList: Map<String, TestCaseParams>,
-    isDuration: Boolean,
-    executionMode: ExecutionMode,
-    parallelism: Int
-): TestCase {
-    return TestCase(
-        urlList,
-        if (isDuration) RunType.DURATION else RunType.COUNT,
-        executionMode,
-        parallelism,
-        original.settings,
-        original.testCaseState,
-        original.testCaseResult
-    )
-}
-
-

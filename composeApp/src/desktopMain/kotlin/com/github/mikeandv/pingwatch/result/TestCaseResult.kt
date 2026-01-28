@@ -1,6 +1,8 @@
 package com.github.mikeandv.pingwatch.result
 
+import com.github.mikeandv.pingwatch.domain.Category
 import com.github.mikeandv.pingwatch.domain.ErrorType
+import com.github.mikeandv.pingwatch.domain.TestCaseParams
 
 class TestCaseResult private constructor(
     val url: String,
@@ -8,6 +10,7 @@ class TestCaseResult private constructor(
     val successRequestCount: Int,
     val errorRequestCount: Int,
     val errorsByType: Map<ErrorType, Int>,
+    val statusCodeCounts: Map<Int, Int>,
     val duration: MetricStatistics,
     val dns: MetricStatistics?,
     val connect: MetricStatistics?,
@@ -38,6 +41,19 @@ class TestCaseResult private constructor(
             return resultCalc.toList()
         }
 
+        fun createForTag(
+            tag: Category,
+            urlsWithParams: Map<String, TestCaseParams>,
+            allTimings: List<RequestTimings>
+        ): TestCaseResult {
+            val urlsForTag = urlsWithParams
+                .filter { it.value.tag?.id == tag.id }
+                .keys
+
+            val tagTimings = allTimings.filter { it.url in urlsForTag }
+            return createInstance(tag.name, tagTimings)
+        }
+
         private fun createInstance(url: String, timings: List<RequestTimings>): TestCaseResult {
             val totalRequestCountCalc = timings.size
 
@@ -48,10 +64,16 @@ class TestCaseResult private constructor(
             val successRequestCountCalc = successDurations.size
             val errorRequestCountCalc = totalRequestCountCalc - successRequestCountCalc
 
-            // Error breakdown by type
+            // Error breakdown by type (network errors only)
             val errorsByType = timings.filter { it.errorType != ErrorType.NONE }
                 .groupBy { it.errorType }
                 .mapValues { it.value.size }
+
+            // Status code breakdown
+            val statusCodeCounts = timings
+                .mapNotNull { it.statusCode }
+                .groupingBy { it }
+                .eachCount()
 
             // Duration statistics from successful requests
             val durationStats = MetricStatistics.fromValues(successDurations) ?: MetricStatistics.EMPTY
@@ -71,6 +93,7 @@ class TestCaseResult private constructor(
                 successRequestCountCalc,
                 errorRequestCountCalc,
                 errorsByType,
+                statusCodeCounts,
                 duration = durationStats,
                 dns = dnsStats,
                 connect = connectStats,

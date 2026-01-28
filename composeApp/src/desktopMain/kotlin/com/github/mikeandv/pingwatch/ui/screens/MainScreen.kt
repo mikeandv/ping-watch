@@ -11,13 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.ui.components.*
-import com.github.mikeandv.pingwatch.ui.handlers.handleAddUrl
-import com.github.mikeandv.pingwatch.ui.handlers.handleImport
-import com.github.mikeandv.pingwatch.ui.handlers.handleLaunchTest
-import com.github.mikeandv.pingwatch.ui.handlers.handleParallelismInputChange
-import com.github.mikeandv.pingwatch.ui.handlers.handleTestCountChange
-import com.github.mikeandv.pingwatch.ui.handlers.handleTimeInputChange
-import com.github.mikeandv.pingwatch.ui.handlers.handleUrlChange
+import com.github.mikeandv.pingwatch.ui.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 

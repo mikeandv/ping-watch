@@ -1,11 +1,7 @@
 package com.github.mikeandv.pingwatch.ui.viewmodels
 
+import com.github.mikeandv.pingwatch.domain.*
 import com.github.mikeandv.pingwatch.utils.convertMillisToTime
-import com.github.mikeandv.pingwatch.domain.TestCase
-import com.github.mikeandv.pingwatch.domain.TestCaseParams
-import com.github.mikeandv.pingwatch.domain.TestCaseSettings
-import com.github.mikeandv.pingwatch.domain.ExecutionMode
-import com.github.mikeandv.pingwatch.domain.RunType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -29,8 +25,15 @@ class MainScreenViewModel {
     private val _parallelism = MutableStateFlow(8)
     val parallelism: StateFlow<Int> = _parallelism
 
-    private val _testCase =
-        MutableStateFlow(TestCase(emptyMap(), RunType.COUNT, ExecutionMode.SEQUENTIAL, 8, testCaseSettings.value))
+    private val _testCase = MutableStateFlow(
+        TestCase(
+            emptyMap(),
+            RunType.COUNT,
+            ExecutionMode.SEQUENTIAL,
+            8,
+            testCaseSettings.value
+        )
+    )
     val testCase: StateFlow<TestCase> = _testCase
 
     private val _progress = MutableStateFlow(0L)
@@ -54,6 +57,9 @@ class MainScreenViewModel {
     private val _timeInput = MutableStateFlow("")
     val timeInput: StateFlow<String> = _timeInput
 
+    private val _tags = MutableStateFlow(emptyList<Category>())
+    val tags: StateFlow<List<Category>> = _tags
+
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
 
@@ -67,7 +73,7 @@ class MainScreenViewModel {
 
     fun updateUrlList(newUrlList: List<String>) {
         val newEntries = newUrlList.associateWith {
-            TestCaseParams(false, _requestCount, _timeMillis, "")
+            TestCaseParams(false, _requestCount, _timeMillis, "", null)
         }
         _urlList.value += newEntries
     }
@@ -98,7 +104,13 @@ class MainScreenViewModel {
             if (value.isEdit) {
                 value
             } else {
-                TestCaseParams(false, value.countValue, newTimeInMillis, convertMillisToTime(newTimeInMillis))
+                TestCaseParams(
+                    false,
+                    value.countValue,
+                    newTimeInMillis,
+                    convertMillisToTime(newTimeInMillis),
+                    value.tag
+                )
             }
         }
     }
@@ -109,7 +121,7 @@ class MainScreenViewModel {
             if (value.isEdit) {
                 value
             } else {
-                TestCaseParams(false, newRequestCount, value.durationValue, value.unformattedDurationValue)
+                TestCaseParams(false, newRequestCount, value.durationValue, value.unformattedDurationValue, value.tag)
             }
         }
     }
@@ -122,7 +134,8 @@ class MainScreenViewModel {
                     oldValue.isEdit,
                     newRequestCount,
                     oldValue.durationValue,
-                    oldValue.unformattedDurationValue
+                    oldValue.unformattedDurationValue,
+                    oldValue.tag
                 )
         }
         _urlList.value = updatedMap
@@ -136,7 +149,8 @@ class MainScreenViewModel {
                     oldValue.isEdit,
                     oldValue.countValue,
                     newTimeInMillis,
-                    convertMillisToTime(newTimeInMillis)
+                    convertMillisToTime(newTimeInMillis),
+                    oldValue.tag
                 )
         }
         _urlList.value = updatedMap
@@ -150,7 +164,8 @@ class MainScreenViewModel {
                     oldValue.isEdit,
                     oldValue.countValue,
                     oldValue.durationValue,
-                    newUnformattedDurationValue
+                    newUnformattedDurationValue,
+                    oldValue.tag
                 )
         }
         _urlList.value = updatedMap
@@ -163,7 +178,22 @@ class MainScreenViewModel {
                 newIsEdit,
                 oldValue.countValue,
                 oldValue.durationValue,
-                oldValue.unformattedDurationValue
+                oldValue.unformattedDurationValue,
+                oldValue.tag
+            )
+        }
+        _urlList.value = updatedMap
+    }
+
+    fun updateTagByKey(newTag: Category?, key: String) {
+        val updatedMap = _urlList.value.toMutableMap()
+        updatedMap[key]?.let { oldValue ->
+            updatedMap[key] = TestCaseParams(
+                oldValue.isEdit,
+                oldValue.countValue,
+                oldValue.durationValue,
+                oldValue.unformattedDurationValue,
+                newTag
             )
         }
         _urlList.value = updatedMap
@@ -203,6 +233,10 @@ class MainScreenViewModel {
 
     fun updateParallelism(newParallelism: Int) {
         _parallelism.value = newParallelism
+    }
+
+    fun addTag(tag: Category) {
+        _tags.value += tag
     }
 }
 

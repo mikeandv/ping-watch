@@ -16,11 +16,7 @@ enum class ErrorType {
     TIMEOUT,                 // Connection or read timeout
     DNS_FAILURE,             // DNS resolution failed
     SSL_ERROR,               // TLS/SSL handshake failure
-    NETWORK_ERROR,           // Other IOException
-
-    // HTTP errors
-    HTTP_CLIENT_ERROR,       // 4xx errors
-    HTTP_SERVER_ERROR;       // 5xx errors
+    NETWORK_ERROR;           // Other IOException
 
     companion object {
         fun fromException(e: IOException): ErrorType {
@@ -31,15 +27,6 @@ enum class ErrorType {
                 is NoRouteToHostException -> HOST_UNREACHABLE
                 is SSLException -> SSL_ERROR
                 else -> NETWORK_ERROR
-            }
-        }
-
-        fun fromStatusCode(code: Int): ErrorType {
-            return when (code) {
-                in 200..399 -> NONE
-                in 400..499 -> HTTP_CLIENT_ERROR
-                in 500..599 -> HTTP_SERVER_ERROR
-                else -> NONE
             }
         }
     }

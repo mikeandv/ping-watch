@@ -4,5 +4,6 @@ class TestCaseParams(
     val isEdit: Boolean,
     val countValue: Long,
     val durationValue: Long,
-    val unformattedDurationValue: String
+    val unformattedDurationValue: String,
+    val tag: Category?
 )

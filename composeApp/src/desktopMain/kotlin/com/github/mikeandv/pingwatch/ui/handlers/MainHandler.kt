@@ -1,6 +1,7 @@
 package com.github.mikeandv.pingwatch.ui.handlers
 
 import com.github.mikeandv.pingwatch.domain.ExecutionMode
+import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCase
 import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
@@ -286,9 +287,14 @@ fun handleLaunchTest(
     }
 
     resetCancelFlag()
-//    updateProgress(0)
 
-    val tmpTestCase = buildTestCase(testCase, urlList, isDuration, executionMode, parallelism)
+    val tmpTestCase = testCase.copy(
+        urls = urlList,
+        runType = if (isDuration) RunType.DURATION else RunType.COUNT,
+        executionMode = executionMode,
+        parallelism = parallelism
+    )
+
     onUpdateTestCase(tmpTestCase)
 
     coroutineScope.launch {
