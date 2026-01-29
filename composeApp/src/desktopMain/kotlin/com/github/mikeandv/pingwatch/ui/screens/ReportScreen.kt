@@ -24,7 +24,6 @@ import com.github.mikeandv.pingwatch.utils.getCategory
 @Composable
 fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
     val testCase by viewModel.testCase.collectAsState()
-    val urlList by viewModel.urlList.collectAsState()
     val tags by viewModel.tags.collectAsState()
     val scrollState = rememberScrollState()
     var showCompareDialog by remember { mutableStateOf(false) }
@@ -41,10 +40,7 @@ fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
                     tags = tags,
                     showClearComparison = comparisonResults.isNotEmpty(),
                     onNavigateBack = onNavigateBack,
-                    onCompare = {
-                        showCompareDialog = true
-                        handleCompare(testCase, viewModel::updateTestCase, urlList)
-                    },
+                    onCompare = { showCompareDialog = true },
                     onClearComparison = { comparisonResults = emptyList() }
                 )
 
@@ -61,7 +57,7 @@ fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
                     ResultsSection(
                         title = "Tag Comparison",
                         resultData = comparisonResults,
-                        urlList = urlList,
+                        urlList = testCase.urls,
                         tags = tags,
                         showTagColumn = false,
                         updateIndividualTag = viewModel::updateTagByKey,
@@ -71,7 +67,7 @@ fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
                     ResultsSection(
                         title = "Run Result",
                         resultData = testCase.testCaseResult,
-                        urlList = urlList,
+                        urlList = testCase.urls,
                         tags = tags,
                         showTagColumn = true,
                         updateIndividualTag = viewModel::updateTagByKey,

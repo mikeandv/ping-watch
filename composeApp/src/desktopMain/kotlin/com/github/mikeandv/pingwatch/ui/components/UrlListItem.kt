@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTestCountChange
 import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTimeInputChange
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.Flow
 fun UrlListItem(
     url: String,
     params: TestCaseParams,
-    isDuration: Boolean,
+    runType: RunType,
     timeInput: String,
     countInput: String,
     progressFlow: Flow<Int>,
@@ -40,7 +41,7 @@ fun UrlListItem(
         Text(url, modifier = Modifier.weight(1f), style = MaterialTheme.typography.body2)
         Spacer(modifier = Modifier.width(16.dp))
 
-        if (!isDuration) {
+        if (runType == RunType.COUNT) {
             UrlProgressIndicator(progress)
             Spacer(modifier = Modifier.width(16.dp))
         }
@@ -53,7 +54,7 @@ fun UrlListItem(
                 isChecked = checked
                 updateIndividualIsEdit(checked, url)
                 syncIndividualValue(
-                    isDuration, timeInput, countInput, url,
+                    runType, timeInput, countInput, url,
                     updateIndividualTime, updateIndividualUnformattedTime,
                     updateIndividualCount, onIndividualErrorChange
                 )
@@ -64,7 +65,7 @@ fun UrlListItem(
         Box(modifier = Modifier.width(150.dp)) {
             if (isChecked) {
                 IndividualInputField(
-                    isDuration = isDuration,
+                    runType = runType,
                     params = params,
                     url = url,
                     updateIndividualTime = updateIndividualTime,
@@ -82,7 +83,7 @@ fun UrlListItem(
 }
 
 private fun syncIndividualValue(
-    isDuration: Boolean,
+    runType: RunType,
     timeInput: String,
     countInput: String,
     url: String,
@@ -91,7 +92,7 @@ private fun syncIndividualValue(
     updateIndividualCount: (Long, String) -> Unit,
     onErrorChange: (String?) -> Unit
 ) {
-    if (isDuration) {
+    if (runType == RunType.DURATION) {
         handleIndividualTimeInputChange(
             timeInput, url, updateIndividualTime, updateIndividualUnformattedTime, onErrorChange
         )

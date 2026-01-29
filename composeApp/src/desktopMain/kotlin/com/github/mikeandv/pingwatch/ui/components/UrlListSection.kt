@@ -14,19 +14,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCase
-import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
 import kotlinx.coroutines.flow.emptyFlow
 
 @Composable
 fun UrlListSection(
+    testCase: TestCase,
     modifier: Modifier = Modifier,
-    urlList: Map<String, TestCaseParams>,
-    isDuration: Boolean,
     timeInput: String,
     countInput: String,
-    testCase: TestCase,
     updateIndividualCount: (Long, String) -> Unit,
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
@@ -46,11 +44,9 @@ fun UrlListSection(
             modifier = Modifier.padding(end = 24.dp).verticalScroll(scrollState)
         ) {
             UrlListColumn(
-                urlList = urlList,
-                isDuration = isDuration,
+                testCase = testCase,
                 timeInput = timeInput,
                 countInput = countInput,
-                testCase = testCase,
                 updateIndividualCount = updateIndividualCount,
                 updateIndividualTime = updateIndividualTime,
                 updateIndividualUnformattedTime = updateIndividualUnformattedTime,
@@ -68,11 +64,9 @@ fun UrlListSection(
 
 @Composable
 private fun UrlListColumn(
-    urlList: Map<String, TestCaseParams>,
-    isDuration: Boolean,
+    testCase: TestCase,
     timeInput: String,
     countInput: String,
-    testCase: TestCase,
     updateIndividualCount: (Long, String) -> Unit,
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
@@ -83,14 +77,14 @@ private fun UrlListColumn(
     val status by testCase.testCaseState.status.collectAsState()
     val isNotRunning = checkIsNotRunningStatus(status)
 
-    urlList.entries.forEachIndexed { index, entry ->
+    testCase.urls.entries.forEachIndexed { index, entry ->
         UrlListItem(
             url = entry.key,
             params = entry.value,
-            isDuration = isDuration,
+            runType = testCase.runType,
             timeInput = timeInput,
             countInput = countInput,
-            progressFlow = if (!isDuration) testCase.urlProgressFlow(entry.key) else emptyFlow(),
+            progressFlow = if (testCase.runType == RunType.COUNT) testCase.urlProgressFlow(entry.key) else emptyFlow(),
             updateIndividualCount = updateIndividualCount,
             updateIndividualTime = updateIndividualTime,
             updateIndividualUnformattedTime = updateIndividualUnformattedTime,
@@ -100,7 +94,7 @@ private fun UrlListColumn(
             enabled = isNotRunning
         )
 
-        if (index != urlList.size - 1) {
+        if (index != testCase.urls.size - 1) {
             Divider(
                 modifier = Modifier.padding(vertical = 4.dp),
                 color = Color.LightGray,

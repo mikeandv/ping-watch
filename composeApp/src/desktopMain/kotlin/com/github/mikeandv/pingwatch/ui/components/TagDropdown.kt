@@ -59,6 +59,7 @@ fun TagDropdown(
                 DropdownMenuItem(onClick = {
                     onTagSelected(tag)
                     expanded = false
+                    isCreating = false
                 }) {
                     Text(tag.name, style = MaterialTheme.typography.body2)
                 }
@@ -70,9 +71,10 @@ fun TagDropdown(
                     onNameChange = { newTagName = it },
                     onAdd = {
                         if (newTagName.isNotBlank()) {
-                            val newTag = Category(getNewTagId(tags), newTagName.trim())
-                            onCreateTag(newTag)
-                            onTagSelected(newTag)
+                            val trimmedName = newTagName.trim()
+                            val existingTag = tags.find { it.name.equals(trimmedName, ignoreCase = true) }
+                            val tag = existingTag ?: Category(getNewTagId(tags), trimmedName).also { onCreateTag(it) }
+                            onTagSelected(tag)
                             newTagName = ""
                             isCreating = false
                             expanded = false

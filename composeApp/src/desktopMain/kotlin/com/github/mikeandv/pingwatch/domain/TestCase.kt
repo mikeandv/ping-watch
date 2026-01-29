@@ -13,9 +13,11 @@ class TestCase(
     val parallelism: Int,
     val testCaseState: TestCaseState = TestCaseState(),
     settings: TestCaseSettings,
-    testCaseResult: List<TestCaseResult>? = null
+    testCaseResult: List<TestCaseResult>? = null,
+    agg: UrlAvgAggregator? = null,
+    okHttpClient: OkHttpClient? = null
 ) {
-    val agg: UrlAvgAggregator = UrlAvgAggregator(settings.earlyStopThreshold)
+    val agg: UrlAvgAggregator = agg ?: UrlAvgAggregator(settings.earlyStopThreshold)
     val events = MutableSharedFlow<TestEvent>(
         extraBufferCapacity = 256
     )
@@ -25,7 +27,7 @@ class TestCase(
     var settings: TestCaseSettings = settings
         private set
 
-    var okHttpClient: OkHttpClient = settings.createHttpClient(agg)
+    var okHttpClient: OkHttpClient = okHttpClient ?: settings.createHttpClient(this.agg)
         private set
 
     fun updateSettings(newSettings: TestCaseSettings) {
@@ -116,7 +118,11 @@ class TestCase(
         testCaseState: TestCaseState = this.testCaseState,
         testCaseResult: List<TestCaseResult>? = this.testCaseResult
     ): TestCase {
-        return TestCase(urls, runType, executionMode, parallelism, testCaseState, settings, testCaseResult)
+        return TestCase(
+            urls, runType, executionMode, parallelism, testCaseState, settings, testCaseResult,
+            agg = this.agg,
+            okHttpClient = this.okHttpClient
+        )
     }
 
     override fun toString(): String {

@@ -13,10 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
+import com.github.mikeandv.pingwatch.domain.RunType
 
 @Composable
 fun DurationOrCountSelector(
-    isDuration: Boolean,
+    runType: RunType,
     onDurationSelected: () -> Unit,
     onCountSelected: () -> Unit,
     timeInput: String,
@@ -29,13 +30,13 @@ fun DurationOrCountSelector(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ModeSelectionRow(
-            isDuration = isDuration,
+            runType = runType,
             onDurationSelected = onDurationSelected,
             onCountSelected = onCountSelected,
             enabled = enabled
         )
 
-        val (value, hint, onChange) = if (isDuration) {
+        val (value, hint, onChange) = if (runType == RunType.DURATION) {
             Triple(timeInput, "Enter time (MM:SS)", onTimeInputChange)
         } else {
             Triple(countInput, "Enter the number", onCountInputChange)
@@ -73,7 +74,7 @@ fun DurationOrCountSelector(
 
 @Composable
 private fun ModeSelectionRow(
-    isDuration: Boolean,
+    runType: RunType,
     onDurationSelected: () -> Unit,
     onCountSelected: () -> Unit,
     enabled: Boolean = true
@@ -82,12 +83,12 @@ private fun ModeSelectionRow(
         Text(
             "Duration",
             color = if (enabled) {
-                if (isDuration) MaterialTheme.colors.primary else Color.Unspecified
+                if (runType == RunType.DURATION) MaterialTheme.colors.primary else Color.Unspecified
             } else Color.Gray
         )
         Spacer(modifier = Modifier.width(8.dp))
         Switch(
-            checked = !isDuration,
+            checked = runType == RunType.COUNT,
             onCheckedChange = { isCount ->
                 if (isCount) onCountSelected() else onDurationSelected()
             },
@@ -97,7 +98,7 @@ private fun ModeSelectionRow(
         Text(
             "Count",
             color = if (enabled) {
-                if (!isDuration) MaterialTheme.colors.primary else Color.Unspecified
+                if (runType == RunType.COUNT) MaterialTheme.colors.primary else Color.Unspecified
             } else Color.Gray
         )
     }

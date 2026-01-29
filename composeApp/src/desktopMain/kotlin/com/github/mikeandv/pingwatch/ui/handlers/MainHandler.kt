@@ -1,9 +1,6 @@
 package com.github.mikeandv.pingwatch.ui.handlers
 
-import com.github.mikeandv.pingwatch.domain.ExecutionMode
-import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCase
-import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
 import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
 import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
@@ -272,27 +269,26 @@ fun handleDispatcherMaxRequestsInputChange(
     input: String,
     updateDispatcherMaxRequestsInput: (String) -> Unit,
     updateErrorMessage: (String?) -> Unit
-) = handleIntInputChange(input, updateDispatcherMaxRequestsInput, updateErrorMessage, ::processDispatcherMaxRequestsInput)
-
+) = handleIntInputChange(
+    input,
+    updateDispatcherMaxRequestsInput,
+    updateErrorMessage,
+    ::processDispatcherMaxRequestsInput
+)
 
 
 fun handleLaunchTest(
     testCase: TestCase,
-    isDuration: Boolean,
-    executionMode: ExecutionMode,
-    parallelism: Int,
     cancelFlag: () -> Boolean,
     resetCancelFlag: () -> Unit,
-    urlList: Map<String, TestCaseParams>,
     durationErrorMessage: String?,
     parallelismError: String?,
     coroutineScope: CoroutineScope,
-    onUpdateTestCase: (TestCase) -> Unit,
     updateProgress: (Long) -> Unit,
     updateShowDialog: (Boolean) -> Unit,
     updateDialogMessage: (String) -> Unit
 ) {
-    val validation = validateLaunchTest(urlList, isDuration, durationErrorMessage, parallelismError)
+    val validation = validateLaunchTest(testCase.urls, testCase.runType, durationErrorMessage, parallelismError)
 
     if (!validation.isValid) {
         updateDialogMessage(validation.errorMessage!!)
@@ -302,21 +298,12 @@ fun handleLaunchTest(
 
     resetCancelFlag()
 
-    val tmpTestCase = testCase.copy(
-        urls = urlList,
-        runType = if (isDuration) RunType.DURATION else RunType.COUNT,
-        executionMode = executionMode,
-        parallelism = parallelism
-    )
-
-    onUpdateTestCase(tmpTestCase)
-
     coroutineScope.launch {
-        tmpTestCase.progressFlow()
+        testCase.progressFlow()
             .collect { updateProgress(it.toLong()) }
     }
 
     coroutineScope.launch {
-        tmpTestCase.runTestCase(cancelFlag)
+        testCase.runTestCase(cancelFlag)
     }
 }

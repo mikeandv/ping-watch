@@ -7,19 +7,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
-import com.github.mikeandv.pingwatch.domain.TestCaseState
 import com.github.mikeandv.pingwatch.domain.ExecutionMode
+import com.github.mikeandv.pingwatch.domain.TestCase
+import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
 
 @Composable
 fun ParametersSection(
-    testCaseState: TestCaseState,
+    testCase: TestCase,
     url: String,
     onUrlChange: (String) -> Unit,
     urlErrorMessage: String?,
     onAddUrl: () -> Unit,
     onImport: () -> Unit,
-    isDuration: Boolean,
     onDurationSelected: () -> Unit,
     onCountSelected: () -> Unit,
     countInput: String,
@@ -27,15 +26,14 @@ fun ParametersSection(
     onTimeInputChange: (String) -> Unit,
     onCountInputChange: (String) -> Unit,
     progress: Long,
-    isEnabled: Boolean,
-    executionMode: ExecutionMode,
     onExecutionModeChange: (ExecutionMode) -> Unit,
     parallelismInput: String,
     parallelismError: String?,
     onParallelismChange: (String) -> Unit
 ) {
-    val status by testCaseState.status.collectAsState()
+    val status by testCase.testCaseState.status.collectAsState()
     val isNotRunning = checkIsNotRunningStatus(status)
+    val isEnabled = testCase.urls.isNotEmpty()
 
     Column(
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -45,7 +43,7 @@ fun ParametersSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             DurationOrCountSelector(
-                isDuration = isDuration,
+                runType = testCase.runType,
                 onDurationSelected = onDurationSelected,
                 onCountSelected = onCountSelected,
                 countInput = countInput,
@@ -58,7 +56,7 @@ fun ParametersSection(
             Spacer(modifier = Modifier.width(32.dp))
 
             ExecutionModeSelector(
-                executionMode = executionMode,
+                executionMode = testCase.executionMode,
                 onExecutionModeChange = onExecutionModeChange,
                 parallelismInput = parallelismInput,
                 parallelismError = parallelismError,

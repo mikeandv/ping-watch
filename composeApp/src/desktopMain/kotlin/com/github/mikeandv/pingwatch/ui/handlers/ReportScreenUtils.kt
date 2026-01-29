@@ -1,8 +1,6 @@
 package com.github.mikeandv.pingwatch.ui.handlers
 
 import com.github.mikeandv.pingwatch.domain.ErrorType
-import com.github.mikeandv.pingwatch.domain.TestCase
-import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.result.MetricStatistics
 import com.github.mikeandv.pingwatch.result.TestCaseResult
 
@@ -49,15 +47,3 @@ fun getTopUrlsByMedian(resultData: List<TestCaseResult>, limit: Int = 5): List<T
 
 fun calculateNormalizedMedian(median: Double, maxMedian: Double): Double =
     if (maxMedian > 0) (median / maxMedian) * 100 else 0.0
-
-fun handleCompare(
-    testCase: TestCase,
-    onUpdateTestCase: (TestCase) -> Unit,
-    urlList: Map<String, TestCaseParams>,
-
-    ) {
-    val newTestCase = testCase.copy(
-        urls = urlList
-    )
-    onUpdateTestCase(newTestCase)
-}

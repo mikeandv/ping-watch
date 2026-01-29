@@ -1,5 +1,6 @@
 package com.github.mikeandv.pingwatch.ui.handlers
 
+import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCaseParams
 import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
 import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
@@ -88,7 +89,11 @@ fun processCountInput(input: String): CountInputResult {
 
     val number = input.toLongOrNull() ?: return CountInputResult.Error("Enter the number")
 
-    return CountInputResult.Valid(number)
+    return when {
+        number < 1 -> CountInputResult.Error("Must be at least 1")
+        number > 10000 -> CountInputResult.Error("Must be at most 10000")
+        else -> CountInputResult.Valid(number)
+    }
 }
 
 fun processIntInput(input: String, min: Int, max: Int, requiredMessage: String = "Required"): IntInputResult {
@@ -121,9 +126,10 @@ fun processEarlyStopThresholdInput(input: String): IntInputResult =
 fun processDispatcherMaxRequestsInput(input: String): IntInputResult =
     processIntInput(input, min = 1, max = 256)
 
+
 fun validateLaunchTest(
     urlList: Map<String, TestCaseParams>,
-    isDuration: Boolean,
+    runType: RunType,
     durationErrorMessage: String?,
     parallelismError: String?
 ): LaunchValidationResult {
@@ -142,7 +148,7 @@ fun validateLaunchTest(
         errors.add("Parallelism value is incorrect!")
     }
 
-    if (isDuration && urlList.values.any { it.durationValue == 0L }) {
+    if (runType == RunType.DURATION && urlList.values.any { it.durationValue == 0L }) {
         errors.add(
             "Time duration doesn't set!\n" +
                     urlList.filter { it.value.durationValue == 0L }
@@ -150,7 +156,7 @@ fun validateLaunchTest(
         )
     }
 
-    if (!isDuration && urlList.values.any { it.countValue == 0L }) {
+    if (runType == RunType.COUNT && urlList.values.any { it.countValue == 0L }) {
         errors.add(
             "Requests count doesn't set!\n" +
                     urlList.filter { it.value.countValue == 0L }

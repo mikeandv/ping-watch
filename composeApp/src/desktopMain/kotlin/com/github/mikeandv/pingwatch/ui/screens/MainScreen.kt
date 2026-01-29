@@ -22,21 +22,16 @@ fun MainScreen(
     viewModel: MainScreenViewModel,
     onNavigate: () -> Unit
 ) {
-    val testCaseSettings by viewModel.testCaseSettings.collectAsState()
     val testCase by viewModel.testCase.collectAsState()
-    val urlList by viewModel.urlList.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val urlErrorMessage by viewModel.urlErrorMessage.collectAsState()
     val durationErrorMessage by viewModel.durationErrorMessage.collectAsState()
     val dialogErrorMessage by viewModel.dialogErrorMessage.collectAsState()
-    val isDuration by viewModel.isDuration.collectAsState()
     val countInput by viewModel.countInput.collectAsState()
     val timeInput by viewModel.timeInput.collectAsState()
     val showDialog by viewModel.showDialog.collectAsState()
-    val executionMode by viewModel.executionMode.collectAsState()
     val parallelismInput by viewModel.parallelismInput.collectAsState()
     val parallelismError by viewModel.parallelismError.collectAsState()
-    val parallelism by viewModel.parallelism.collectAsState()
 
     var url by remember { mutableStateOf("") }
     var individualErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -75,11 +70,15 @@ fun MainScreen(
                     testCaseState = testCase.testCaseState,
                     onLaunchTest = {
                         handleLaunchTest(
-                            testCase, isDuration, executionMode, parallelism,
-                            { cancelFlag.get() }, { cancelFlag.set(false) },
-                            urlList, durationErrorMessage, parallelismError,
-                            coroutineScope, viewModel::updateTestCase, viewModel::updateProgress,
-                            viewModel::updateShowDialog, viewModel::updateDialogErrorMessage
+                            testCase,
+                            { cancelFlag.get() },
+                            { cancelFlag.set(false) },
+                            durationErrorMessage,
+                            parallelismError,
+                            coroutineScope,
+                            viewModel::updateProgress,
+                            viewModel::updateShowDialog,
+                            viewModel::updateDialogErrorMessage
                         )
                     },
                     onNavigate = onNavigate,
@@ -91,7 +90,7 @@ fun MainScreen(
             }
 
             ParametersSection(
-                testCaseState = testCase.testCaseState,
+                testCase = testCase,
                 url = url,
                 onUrlChange = { input ->
                     handleUrlChange(input, { url = it }, viewModel::updateUrlErrorMessage, URL_PATTERN)
@@ -112,12 +111,11 @@ fun MainScreen(
                         viewModel::updateShowDialog,
                         viewModel::updateDialogErrorMessage,
                         URL_PATTERN,
-                        testCaseSettings.maxFileSize,
-                        testCaseSettings.maxLinesLimit,
-                        testCaseSettings.allowedFileExtensions
+                        testCase.settings.maxFileSize,
+                        testCase.settings.maxLinesLimit,
+                        testCase.settings.allowedFileExtensions
                     )
                 },
-                isDuration = isDuration,
                 onDurationSelected = {
                     viewModel.updateIsDuration(true)
                     viewModel.updateDurationErrorMessage(null)
@@ -147,8 +145,6 @@ fun MainScreen(
                     )
                 },
                 progress = progress,
-                isEnabled = urlList.isNotEmpty(),
-                executionMode = executionMode,
                 onExecutionModeChange = { mode ->
                     viewModel.updateExecutionMode(mode)
                 },
@@ -165,17 +161,15 @@ fun MainScreen(
             )
 
             UrlListSection(
+                testCase = testCase,
                 modifier = Modifier.weight(4f),
-                urlList = urlList,
-                isDuration = isDuration,
                 timeInput = timeInput,
                 countInput = countInput,
-                testCase = testCase,
                 updateIndividualCount = viewModel::updateRequestCountByKey,
                 updateIndividualTime = viewModel::updateTimeInMillisByKey,
                 updateIndividualUnformattedTime = viewModel::updateUnformattedDurationValueByKey,
                 updateIndividualIsEdit = viewModel::updateIsEditByKey,
-                onRemoveUrl = { viewModel.updateUrlList(urlList.minus(it)) },
+                onRemoveUrl = { viewModel.updateUrlList(testCase.urls.minus(it)) },
                 onIndividualErrorChange = { individualErrorMessage = it }
             )
         }
@@ -188,7 +182,7 @@ fun MainScreen(
 
         SettingsDialog(
             showDialog = showSettingsDialog,
-            settings = testCaseSettings,
+            settings = testCase.settings,
             onDismiss = { showSettingsDialog = false },
             onSave = { newSettings ->
                 viewModel.updateTestCaseSettings(newSettings)
