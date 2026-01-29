@@ -99,8 +99,17 @@ class TimingEventListener(private val onFinished: (RequestTimings) -> Unit) : Ev
     }
 
     override fun callEnd(call: Call) {
-        success = true
         callEndNs = System.nanoTime()
+        // Classify based on HTTP status code
+        statusCode?.let { code ->
+            errorType = ErrorType.fromStatusCode(code)
+            success = errorType == ErrorType.NONE
+            if (!success) {
+                error = "HTTP $code"
+            }
+        } ?: run {
+            success = true
+        }
         publish()
     }
 

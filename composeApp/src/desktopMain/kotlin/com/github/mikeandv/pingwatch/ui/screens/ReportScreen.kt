@@ -90,7 +90,7 @@ fun ReportScreen(viewModel: MainScreenViewModel, onNavigateBack: () -> Unit) {
             tags = tags,
             onDismiss = { showCompareDialog = false },
             onCompare = { firstTag, secondTag ->
-                val allTimings = testCase.settings.agg.getAllTimings()
+                val allTimings = testCase.agg.getAllTimings()
                 val firstResult = TestCaseResult.createForTag(firstTag, testCase.urls, allTimings)
                 val secondResult = TestCaseResult.createForTag(secondTag, testCase.urls, allTimings)
                 comparisonResults = listOf(firstResult, secondResult)
@@ -340,11 +340,20 @@ private fun ExpandedDetailsSection(result: TestCaseResult, showTagColumn: Boolea
             }
         }
 
-        if (result.errorsByType.isNotEmpty()) {
+        if (result.httpErrorsByType.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("HTTP errors:", style = MaterialTheme.typography.subtitle2)
+
+            result.httpErrorsByType.forEach { (errorType, count) ->
+                breakDownRow(errorTypeLabel(errorType), count, showTagColumn)
+            }
+        }
+
+        if (result.networkErrorsByType.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text("Network errors:", style = MaterialTheme.typography.subtitle2)
 
-            result.errorsByType.forEach { (errorType, count) ->
+            result.networkErrorsByType.forEach { (errorType, count) ->
                 breakDownRow(errorTypeLabel(errorType), count, showTagColumn)
             }
         }

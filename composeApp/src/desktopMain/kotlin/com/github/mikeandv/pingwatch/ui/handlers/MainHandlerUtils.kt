@@ -115,6 +115,12 @@ fun processMaxFileSizeInput(input: String): IntInputResult =
 fun processMaxLinesLimitInput(input: String): IntInputResult =
     processIntInput(input, min = 1, max = 1000)
 
+fun processEarlyStopThresholdInput(input: String): IntInputResult =
+    processIntInput(input, min = 1, max = 100)
+
+fun processDispatcherMaxRequestsInput(input: String): IntInputResult =
+    processIntInput(input, min = 1, max = 256)
+
 fun validateLaunchTest(
     urlList: Map<String, TestCaseParams>,
     isDuration: Boolean,

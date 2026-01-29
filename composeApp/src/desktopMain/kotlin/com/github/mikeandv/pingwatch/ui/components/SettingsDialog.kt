@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.domain.TestCaseSettings
+import com.github.mikeandv.pingwatch.ui.handlers.handleDispatcherMaxRequestsInputChange
+import com.github.mikeandv.pingwatch.ui.handlers.handleEarlyStopThresholdInputChange
 import com.github.mikeandv.pingwatch.ui.handlers.handleMaxFileSizeInputChange
 import com.github.mikeandv.pingwatch.ui.handlers.handleMaxLinesLimitInputChange
 
@@ -27,6 +29,12 @@ fun SettingsDialog(
         var maxFileSizeError by remember { mutableStateOf<String?>(null) }
         var maxLinesLimitInput by remember(settings) { mutableStateOf(settings.maxLinesLimit.toString()) }
         var maxLinesLimitError by remember { mutableStateOf<String?>(null) }
+        var earlyStopThresholdInput by remember(settings) { mutableStateOf(settings.earlyStopThreshold.toString()) }
+        var earlyStopThresholdError by remember { mutableStateOf<String?>(null) }
+        var dispatcherMaxRequestsInput by remember(settings) { mutableStateOf(settings.dispatcherMaxRequests.toString()) }
+        var dispatcherMaxRequestsError by remember { mutableStateOf<String?>(null) }
+        var dispatcherMaxRequestsPerHostInput by remember(settings) { mutableStateOf(settings.dispatcherMaxRequestsPerHost.toString()) }
+        var dispatcherMaxRequestsPerHostError by remember { mutableStateOf<String?>(null) }
 
         val availableExtensions = listOf("txt", "json", "csv")
         var selectedExtensions by remember(settings) { mutableStateOf(settings.allowedFileExtensions.toSet()) }
@@ -59,6 +67,42 @@ fun SettingsDialog(
                         }
                     )
 
+                    SettingsIntField(
+                        label = "Early Stop Threshold",
+                        value = earlyStopThresholdInput,
+                        error = earlyStopThresholdError,
+                        onValueChange = { input ->
+                            handleEarlyStopThresholdInputChange(
+                                input,
+                                { earlyStopThresholdInput = it },
+                                { earlyStopThresholdError = it })
+                        }
+                    )
+
+                    SettingsIntField(
+                        label = "Dispatcher Max Requests",
+                        value = dispatcherMaxRequestsInput,
+                        error = dispatcherMaxRequestsError,
+                        onValueChange = { input ->
+                            handleDispatcherMaxRequestsInputChange(
+                                input,
+                                { dispatcherMaxRequestsInput = it },
+                                { dispatcherMaxRequestsError = it })
+                        }
+                    )
+
+                    SettingsIntField(
+                        label = "Per Host Dispatcher Max Requests ",
+                        value = dispatcherMaxRequestsPerHostInput,
+                        error = dispatcherMaxRequestsPerHostError,
+                        onValueChange = { input ->
+                            handleDispatcherMaxRequestsInputChange(
+                                input,
+                                { dispatcherMaxRequestsPerHostInput = it },
+                                { dispatcherMaxRequestsPerHostError = it })
+                        }
+                    )
+
                     FileExtensionsSelector(
                         availableExtensions = availableExtensions,
                         selectedExtensions = selectedExtensions,
@@ -71,16 +115,25 @@ fun SettingsDialog(
                     onClick = {
                         val maxFileSize = maxFileSizeInput.toIntOrNull() ?: settings.maxFileSize
                         val maxLinesLimit = maxLinesLimitInput.toIntOrNull() ?: settings.maxLinesLimit
+                        val earlyStopThreshold = earlyStopThresholdInput.toIntOrNull() ?: settings.earlyStopThreshold
+                        val dispatcherMaxRequests =
+                            dispatcherMaxRequestsInput.toIntOrNull() ?: settings.dispatcherMaxRequests
+                        val dispatcherMaxRequestsPerHost =
+                            dispatcherMaxRequestsPerHostInput.toIntOrNull() ?: settings.dispatcherMaxRequestsPerHost
                         onSave(
                             settings.copy(
                                 maxFileSize = maxFileSize,
                                 maxLinesLimit = maxLinesLimit,
-                                allowedFileExtensions = selectedExtensions.toList()
+                                allowedFileExtensions = selectedExtensions.toList(),
+                                earlyStopThreshold = earlyStopThreshold,
+                                dispatcherMaxRequests = dispatcherMaxRequests,
+                                dispatcherMaxRequestsPerHost = dispatcherMaxRequestsPerHost
                             )
                         )
                     },
                     enabled = maxFileSizeError == null && maxLinesLimitError == null &&
-                            selectedExtensions.isNotEmpty()
+                            earlyStopThresholdError == null &&
+                            dispatcherMaxRequestsError == null && dispatcherMaxRequestsPerHostError == null && selectedExtensions.isNotEmpty()
                 ) {
                     Text("Save")
                 }

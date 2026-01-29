@@ -22,6 +22,9 @@ fun errorTypeLabel(type: ErrorType): String = when (type) {
     ErrorType.DNS_FAILURE -> "DNS Failure"
     ErrorType.SSL_ERROR -> "SSL Error"
     ErrorType.NETWORK_ERROR -> "Network Error"
+    ErrorType.HTTP_CLIENT_ERROR -> "HTTP Client Error"
+    ErrorType.HTTP_CRITICAL_ERROR -> "HTTP Client Error"
+    ErrorType.HTTP_SERVER_ERROR -> "HTTP Server Error"
 }
 
 fun formatMetricValue(value: Double?): String = value?.let { "%.3f".format(it) } ?: "-"

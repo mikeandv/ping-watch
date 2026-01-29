@@ -2,23 +2,39 @@ package com.github.mikeandv.pingwatch.domain
 
 import com.github.mikeandv.pingwatch.processor.runR
 import com.github.mikeandv.pingwatch.result.TestCaseResult
+import com.github.mikeandv.pingwatch.result.UrlAvgAggregator
 import kotlinx.coroutines.flow.*
+import okhttp3.OkHttpClient
 
 class TestCase(
     val urls: Map<String, TestCaseParams>,
     val runType: RunType,
     val executionMode: ExecutionMode,
     val parallelism: Int,
-    val settings: TestCaseSettings,
     val testCaseState: TestCaseState = TestCaseState(),
+    settings: TestCaseSettings,
     testCaseResult: List<TestCaseResult>? = null
 ) {
-    var testCaseResult: List<TestCaseResult> = testCaseResult ?: emptyList()
-        private set
-
+    val agg: UrlAvgAggregator = UrlAvgAggregator(settings.earlyStopThreshold)
     val events = MutableSharedFlow<TestEvent>(
         extraBufferCapacity = 256
     )
+    var testCaseResult: List<TestCaseResult> = testCaseResult ?: emptyList()
+        private set
+
+    var settings: TestCaseSettings = settings
+        private set
+
+    var okHttpClient: OkHttpClient = settings.createHttpClient(agg)
+        private set
+
+    fun updateSettings(newSettings: TestCaseSettings) {
+        if (newSettings.earlyStopThreshold != settings.earlyStopThreshold) {
+            agg.updateEarlyStopThreshold(newSettings.earlyStopThreshold)
+        }
+        okHttpClient = newSettings.createHttpClient(agg)
+        settings = newSettings
+    }
 
     fun totalRequests(): Long =
         urls.values.sumOf { it.countValue }
@@ -60,6 +76,8 @@ class TestCase(
             }
         }.mapNotNull { state ->
             when {
+                state.finished -> 100
+
                 state.total != null && state.total > 0 ->
                     ((state.completed * 100) / state.total).toInt()
 
@@ -98,7 +116,7 @@ class TestCase(
         testCaseState: TestCaseState = this.testCaseState,
         testCaseResult: List<TestCaseResult>? = this.testCaseResult
     ): TestCase {
-        return TestCase(urls, runType, executionMode, parallelism, settings, testCaseState, testCaseResult)
+        return TestCase(urls, runType, executionMode, parallelism, testCaseState, settings, testCaseResult)
     }
 
     override fun toString(): String {

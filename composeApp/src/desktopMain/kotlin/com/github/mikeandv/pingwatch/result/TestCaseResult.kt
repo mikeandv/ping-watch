@@ -9,7 +9,8 @@ class TestCaseResult private constructor(
     val totalRequestCount: Int,
     val successRequestCount: Int,
     val errorRequestCount: Int,
-    val errorsByType: Map<ErrorType, Int>,
+    val networkErrorsByType: Map<ErrorType, Int>,
+    val httpErrorsByType: Map<ErrorType, Int>,
     val statusCodeCounts: Map<Int, Int>,
     val duration: MetricStatistics,
     val dns: MetricStatistics?,
@@ -64,10 +65,17 @@ class TestCaseResult private constructor(
             val successRequestCountCalc = successDurations.size
             val errorRequestCountCalc = totalRequestCountCalc - successRequestCountCalc
 
-            // Error breakdown by type (network errors only)
-            val errorsByType = timings.filter { it.errorType != ErrorType.NONE }
-                .groupBy { it.errorType }
-                .mapValues { it.value.size }
+            // Network error breakdown by type
+            val networkErrorsByType =
+                timings.filter { it.errorType != ErrorType.NONE && it.errorType != ErrorType.HTTP_CLIENT_ERROR && it.errorType != ErrorType.HTTP_SERVER_ERROR && it.errorType != ErrorType.HTTP_CRITICAL_ERROR }
+                    .groupBy { it.errorType }
+                    .mapValues { it.value.size }
+
+            // HTTP Error breakdown by type (network errors only)
+            val httpErrorsByType =
+                timings.filter { it.errorType == ErrorType.HTTP_CLIENT_ERROR || it.errorType == ErrorType.HTTP_SERVER_ERROR || it.errorType == ErrorType.HTTP_CRITICAL_ERROR }
+                    .groupBy { it.errorType }
+                    .mapValues { it.value.size }
 
             // Status code breakdown
             val statusCodeCounts = timings
@@ -92,7 +100,8 @@ class TestCaseResult private constructor(
                 totalRequestCountCalc,
                 successRequestCountCalc,
                 errorRequestCountCalc,
-                errorsByType,
+                networkErrorsByType,
+                httpErrorsByType,
                 statusCodeCounts,
                 duration = durationStats,
                 dns = dnsStats,

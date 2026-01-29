@@ -192,7 +192,7 @@ fun MainScreen(
             onDismiss = { showSettingsDialog = false },
             onSave = { newSettings ->
                 viewModel.updateTestCaseSettings(newSettings)
-                viewModel.updateTestCase(testCase.copy(settings = newSettings))
+                testCase.updateSettings(newSettings)
                 showSettingsDialog = false
             }
         )

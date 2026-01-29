@@ -262,6 +262,20 @@ fun handleMaxLinesLimitInputChange(
     updateErrorMessage: (String?) -> Unit
 ) = handleIntInputChange(input, updateMaxLinesLimitInput, updateErrorMessage, ::processMaxLinesLimitInput)
 
+fun handleEarlyStopThresholdInputChange(
+    input: String,
+    updateEarlyStopThresholdInput: (String) -> Unit,
+    updateErrorMessage: (String?) -> Unit
+) = handleIntInputChange(input, updateEarlyStopThresholdInput, updateErrorMessage, ::processEarlyStopThresholdInput)
+
+fun handleDispatcherMaxRequestsInputChange(
+    input: String,
+    updateDispatcherMaxRequestsInput: (String) -> Unit,
+    updateErrorMessage: (String?) -> Unit
+) = handleIntInputChange(input, updateDispatcherMaxRequestsInput, updateErrorMessage, ::processDispatcherMaxRequestsInput)
+
+
+
 fun handleLaunchTest(
     testCase: TestCase,
     isDuration: Boolean,

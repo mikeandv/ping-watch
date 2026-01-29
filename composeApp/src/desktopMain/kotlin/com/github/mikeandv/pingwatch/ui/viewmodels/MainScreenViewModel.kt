@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MainScreenViewModel {
 
-    private val _testCaseSettings = MutableStateFlow(TestCaseSettings.createDefaultSettings())
+    private val _testCaseSettings = MutableStateFlow(TestCaseSettings())
     val testCaseSettings: StateFlow<TestCaseSettings> = _testCaseSettings
 
     private val _urlList = MutableStateFlow(emptyMap<String, TestCaseParams>())
@@ -27,11 +27,11 @@ class MainScreenViewModel {
 
     private val _testCase = MutableStateFlow(
         TestCase(
-            emptyMap(),
-            RunType.COUNT,
-            ExecutionMode.SEQUENTIAL,
-            8,
-            testCaseSettings.value
+            urls = emptyMap(),
+            runType = RunType.COUNT,
+            executionMode = ExecutionMode.SEQUENTIAL,
+            parallelism = 8,
+            settings = testCaseSettings.value
         )
     )
     val testCase: StateFlow<TestCase> = _testCase

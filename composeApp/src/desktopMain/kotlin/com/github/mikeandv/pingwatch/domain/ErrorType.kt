@@ -16,9 +16,24 @@ enum class ErrorType {
     TIMEOUT,                 // Connection or read timeout
     DNS_FAILURE,             // DNS resolution failed
     SSL_ERROR,               // TLS/SSL handshake failure
-    NETWORK_ERROR;           // Other IOException
+    NETWORK_ERROR,           // Other IOException
+
+    // HTTP errors
+    HTTP_CRITICAL_ERROR,         // 400, 401, 403, 404, 410 errors
+    HTTP_CLIENT_ERROR,                  // 4xx errors
+    HTTP_SERVER_ERROR;                  // 5xx errors
+
+    fun isCritical(): Boolean = this in CRITICAL_ERRORS
 
     companion object {
+        private val CRITICAL_ERRORS = setOf(
+            DNS_FAILURE,
+            SSL_ERROR,
+            HOST_UNREACHABLE,
+            CONNECTION_REFUSED,
+            HTTP_CRITICAL_ERROR
+        )
+
         fun fromException(e: IOException): ErrorType {
             return when (e) {
                 is SocketTimeoutException -> TIMEOUT
@@ -27,6 +42,16 @@ enum class ErrorType {
                 is NoRouteToHostException -> HOST_UNREACHABLE
                 is SSLException -> SSL_ERROR
                 else -> NETWORK_ERROR
+            }
+        }
+
+        fun fromStatusCode(code: Int): ErrorType {
+            return when (code) {
+                in 200..399 -> NONE
+                in listOf(400, 401, 403, 404, 410) -> HTTP_CRITICAL_ERROR
+                in 400..499 -> HTTP_CLIENT_ERROR
+                in 500..599 -> HTTP_SERVER_ERROR
+                else -> NONE
             }
         }
     }

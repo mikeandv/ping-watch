@@ -20,7 +20,7 @@ suspend fun runR(testCase: TestCase, cancelFlag: () -> Boolean): List<TestCaseRe
             durationMs = if (testCase.runType == RunType.DURATION) testCase.maxDuration() else null
         )
     )
-    testCase.settings.agg.clear()
+    testCase.agg.clear()
 
     when (testCase.runType) {
         RunType.COUNT -> runByCount(testCase, cancelFlag)
@@ -30,12 +30,12 @@ suspend fun runR(testCase: TestCase, cancelFlag: () -> Boolean): List<TestCaseRe
     testCase.events.emit(TestEvent.Finished)
 
     // Get all timings collected by TimingEventListener
-    val allTimings = testCase.settings.agg.getAllTimings()
+    val allTimings = testCase.agg.getAllTimings()
     return TestCaseResult.create(allTimings)
 }
 
 private suspend fun TestCase.makeRequest(url: String) {
-    executeRequest(settings.okHttpClient, url, events)
+    executeRequest(okHttpClient, url, events)
 }
 
 private suspend fun executeRequest(
@@ -77,9 +77,12 @@ private suspend fun runByCountSequential(
     cancelFlag: () -> Boolean
 ) {
     for ((url, param) in testCase.urls) {
-        repeat(param.countValue.toInt()) {
+        var remaining = param.countValue.toInt()
+        while (remaining > 0) {
             if (cancelFlag()) return
+            if (testCase.agg.shouldStopEarly(url)) break
             testCase.makeRequest(url)
+            remaining--
         }
     }
 }
@@ -111,12 +114,24 @@ private suspend fun CoroutineScope.produceInterleavedUrls(
 ) {
     val remaining = testCase.urls.mapValues { it.value.countValue.toInt() }.toMutableMap()
     while (remaining.values.any { it > 0 }) {
+        var madeProgress = false
         for ((url, count) in remaining) {
             if (count > 0) {
                 if (!isActive || cancelFlag()) return
+                if (testCase.agg.shouldStopEarly(url)) {
+                    remaining[url] = 0
+                    continue
+                }
+                if (!testCase.agg.tryAcquireSlot(url)) {
+                    continue
+                }
                 queue.send(url)
                 remaining[url] = count - 1
+                madeProgress = true
             }
+        }
+        if (!madeProgress && remaining.values.any { it > 0 }) {
+            delay(10)
         }
     }
 }
@@ -130,6 +145,7 @@ private fun CoroutineScope.launchWorkers(
     launch(dispatcher) {
         for (url in queue) {
             if (!isActive || cancelFlag()) break
+            if (testCase.agg.shouldStopEarly(url)) continue
             testCase.makeRequest(url)
         }
     }
@@ -161,7 +177,9 @@ private suspend fun runByDurationSequential(
     val start = System.currentTimeMillis()
 
     while (System.currentTimeMillis() - start < testCase.maxDuration()) {
-        for ((url, _) in testCase.urls) {
+        val activeUrls = testCase.urls.keys.filterNot { testCase.agg.shouldStopEarly(it) }
+        if (activeUrls.isEmpty()) return
+        for (url in activeUrls) {
             if (cancelFlag()) return
             testCase.makeRequest(url)
         }
@@ -179,6 +197,11 @@ private suspend fun runByDurationParallel(
         async(dispatcher) {
             while (System.currentTimeMillis() - start < param.durationValue) {
                 if (cancelFlag()) break
+                if (testCase.agg.shouldStopEarly(url)) break
+                if (!testCase.agg.tryAcquireSlot(url)) {
+                    delay(10)
+                    continue
+                }
                 testCase.makeRequest(url)
             }
         }
