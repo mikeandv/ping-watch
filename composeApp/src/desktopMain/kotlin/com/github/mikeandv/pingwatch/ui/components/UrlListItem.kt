@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCaseParams
+import com.github.mikeandv.pingwatch.domain.TestCaseSettings
 import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTestCountChange
 import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTimeInputChange
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +20,7 @@ fun UrlListItem(
     url: String,
     params: TestCaseParams,
     runType: RunType,
+    settings: TestCaseSettings,
     timeInput: String,
     countInput: String,
     progressFlow: Flow<Int>,
@@ -54,9 +56,15 @@ fun UrlListItem(
                 isChecked = checked
                 updateIndividualIsEdit(checked, url)
                 syncIndividualValue(
-                    runType, timeInput, countInput, url,
-                    updateIndividualTime, updateIndividualUnformattedTime,
-                    updateIndividualCount, onIndividualErrorChange
+                    settings,
+                    runType,
+                    timeInput,
+                    countInput,
+                    url,
+                    updateIndividualTime,
+                    updateIndividualUnformattedTime,
+                    updateIndividualCount,
+                    onIndividualErrorChange
                 )
             },
             enabled = enabled
@@ -65,6 +73,7 @@ fun UrlListItem(
         Box(modifier = Modifier.width(150.dp)) {
             if (isChecked) {
                 IndividualInputField(
+                    settings = settings,
                     runType = runType,
                     params = params,
                     url = url,
@@ -83,6 +92,7 @@ fun UrlListItem(
 }
 
 private fun syncIndividualValue(
+    settings: TestCaseSettings,
     runType: RunType,
     timeInput: String,
     countInput: String,
@@ -97,6 +107,13 @@ private fun syncIndividualValue(
             timeInput, url, updateIndividualTime, updateIndividualUnformattedTime, onErrorChange
         )
     } else {
-        handleIndividualTestCountChange(countInput, url, updateIndividualCount, onErrorChange)
+        handleIndividualTestCountChange(
+            countInput,
+            url,
+            updateIndividualCount,
+            onErrorChange,
+            settings.minCommonInput,
+            settings.maxCountInput
+        )
     }
 }

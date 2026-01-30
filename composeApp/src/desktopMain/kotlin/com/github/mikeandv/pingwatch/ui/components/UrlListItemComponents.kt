@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCaseParams
+import com.github.mikeandv.pingwatch.domain.TestCaseSettings
 import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTestCountChange
 import com.github.mikeandv.pingwatch.ui.handlers.handleIndividualTimeInputChange
 
@@ -43,6 +44,7 @@ fun UrlProgressIndicator(progress: Int) {
 
 @Composable
 fun IndividualInputField(
+    settings: TestCaseSettings,
     runType: RunType,
     params: TestCaseParams,
     url: String,
@@ -67,7 +69,14 @@ fun IndividualInputField(
             if (params.countValue == 0L) "" else params.countValue.toString(),
             "Enter the number",
             { input: String ->
-                handleIndividualTestCountChange(input, url, updateIndividualCount, onErrorChange)
+                handleIndividualTestCountChange(
+                    input,
+                    url,
+                    updateIndividualCount,
+                    onErrorChange,
+                    settings.minCommonInput,
+                    settings.maxCountInput
+                )
             }
         )
     }

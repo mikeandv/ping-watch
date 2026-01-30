@@ -12,10 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.domain.TestCaseSettings
-import com.github.mikeandv.pingwatch.ui.handlers.handleDispatcherMaxRequestsInputChange
-import com.github.mikeandv.pingwatch.ui.handlers.handleEarlyStopThresholdInputChange
-import com.github.mikeandv.pingwatch.ui.handlers.handleMaxFileSizeInputChange
-import com.github.mikeandv.pingwatch.ui.handlers.handleMaxLinesLimitInputChange
+import com.github.mikeandv.pingwatch.ui.handlers.handleIntInputChange
 
 @Composable
 fun SettingsDialog(
@@ -51,7 +48,13 @@ fun SettingsDialog(
                         value = maxFileSizeInput,
                         error = maxFileSizeError,
                         onValueChange = { input ->
-                            handleMaxFileSizeInputChange(input, { maxFileSizeInput = it }, { maxFileSizeError = it })
+                            handleIntInputChange(
+                                input,
+                                { maxFileSizeInput = it },
+                                { maxFileSizeError = it },
+                                settings.minCommonInput,
+                                settings.maxFileSizeInput
+                            )
                         }
                     )
 
@@ -60,10 +63,13 @@ fun SettingsDialog(
                         value = maxLinesLimitInput,
                         error = maxLinesLimitError,
                         onValueChange = { input ->
-                            handleMaxLinesLimitInputChange(
+                            handleIntInputChange(
                                 input,
                                 { maxLinesLimitInput = it },
-                                { maxLinesLimitError = it })
+                                { maxLinesLimitError = it },
+                                settings.minCommonInput,
+                                settings.maxLineLimitInput
+                            )
                         }
                     )
 
@@ -72,10 +78,13 @@ fun SettingsDialog(
                         value = earlyStopThresholdInput,
                         error = earlyStopThresholdError,
                         onValueChange = { input ->
-                            handleEarlyStopThresholdInputChange(
+                            handleIntInputChange(
                                 input,
                                 { earlyStopThresholdInput = it },
-                                { earlyStopThresholdError = it })
+                                { earlyStopThresholdError = it },
+                                settings.minCommonInput,
+                                settings.maxEarlyStopThresholdInput
+                            )
                         }
                     )
 
@@ -84,10 +93,13 @@ fun SettingsDialog(
                         value = dispatcherMaxRequestsInput,
                         error = dispatcherMaxRequestsError,
                         onValueChange = { input ->
-                            handleDispatcherMaxRequestsInputChange(
+                            handleIntInputChange(
                                 input,
                                 { dispatcherMaxRequestsInput = it },
-                                { dispatcherMaxRequestsError = it })
+                                { dispatcherMaxRequestsError = it },
+                                settings.minCommonInput,
+                                settings.maxDispatcherRequestsInput
+                            )
                         }
                     )
 
@@ -96,10 +108,13 @@ fun SettingsDialog(
                         value = dispatcherMaxRequestsPerHostInput,
                         error = dispatcherMaxRequestsPerHostError,
                         onValueChange = { input ->
-                            handleDispatcherMaxRequestsInputChange(
+                            handleIntInputChange(
                                 input,
                                 { dispatcherMaxRequestsPerHostInput = it },
-                                { dispatcherMaxRequestsPerHostError = it })
+                                { dispatcherMaxRequestsPerHostError = it },
+                                settings.minCommonInput,
+                                settings.maxDispatcherRequestsInput
+                            )
                         }
                     )
 

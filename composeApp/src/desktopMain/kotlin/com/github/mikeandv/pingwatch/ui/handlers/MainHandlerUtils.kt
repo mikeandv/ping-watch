@@ -1,11 +1,9 @@
 package com.github.mikeandv.pingwatch.ui.handlers
 
+import com.github.mikeandv.pingwatch.domain.ExecutionMode
 import com.github.mikeandv.pingwatch.domain.RunType
-import com.github.mikeandv.pingwatch.domain.TestCaseParams
-import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
-import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
-import com.github.mikeandv.pingwatch.ui.utils.LaunchValidationResult
-import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
+import com.github.mikeandv.pingwatch.domain.TestCase
+import com.github.mikeandv.pingwatch.ui.utils.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 fun validateUrlsFile(
@@ -82,17 +80,32 @@ fun processTimeInput(input: String): TimeInputResult {
     )
 }
 
-fun processCountInput(input: String): CountInputResult {
+fun processCountInput(input: String, min: Int, max: Int): CountInputResult {
     if (input.isEmpty()) {
         return CountInputResult.Empty()
     }
 
-    val number = input.toLongOrNull() ?: return CountInputResult.Error("Enter the number")
+    val number = input.toLongOrNull() ?: return CountInputResult.Error("Count must be a number")
 
     return when {
-        number < 1 -> CountInputResult.Error("Must be at least 1")
-        number > 10000 -> CountInputResult.Error("Must be at most 10000")
+        number < min -> CountInputResult.Error("Count must be at least $min")
+        number > max -> CountInputResult.Error("Count must be at most $max")
         else -> CountInputResult.Valid(number)
+    }
+}
+
+fun processParallelismInput(input: String, min: Int, max: Int): ParallelismInputResult {
+    if (input.isEmpty()) {
+        return ParallelismInputResult.Empty()
+    }
+
+    val value = input.toIntOrNull()
+        ?: return ParallelismInputResult.Error("Parallelism must be a number")
+
+    return when {
+        value < min -> ParallelismInputResult.Error("Parallelism must be at least $min")
+        value > max -> ParallelismInputResult.Error("Parallelism must be at most $max")
+        else -> ParallelismInputResult.Valid(value)
     }
 }
 
@@ -111,32 +124,15 @@ fun processIntInput(input: String, min: Int, max: Int, requiredMessage: String =
     }
 }
 
-fun processParallelismInput(input: String): IntInputResult =
-    processIntInput(input, min = 1, max = 64, requiredMessage = "Parallelism is required")
-
-fun processMaxFileSizeInput(input: String): IntInputResult =
-    processIntInput(input, min = 1, max = 100)
-
-fun processMaxLinesLimitInput(input: String): IntInputResult =
-    processIntInput(input, min = 1, max = 1000)
-
-fun processEarlyStopThresholdInput(input: String): IntInputResult =
-    processIntInput(input, min = 1, max = 100)
-
-fun processDispatcherMaxRequestsInput(input: String): IntInputResult =
-    processIntInput(input, min = 1, max = 256)
-
-
 fun validateLaunchTest(
-    urlList: Map<String, TestCaseParams>,
-    runType: RunType,
+    testCase: TestCase,
     durationErrorMessage: String?,
     parallelismError: String?
 ): LaunchValidationResult {
 
     val errors = mutableListOf<String>()
 
-    if (urlList.isEmpty()) {
+    if (testCase.urls.isEmpty()) {
         errors.add("URLs list is empty!")
     }
 
@@ -144,22 +140,26 @@ fun validateLaunchTest(
         errors.add("Duration format is incorrect!")
     }
 
-    if (!parallelismError.isNullOrEmpty()) {
+    if (testCase.executionMode == ExecutionMode.PARALLEL && !parallelismError.isNullOrEmpty()) {
         errors.add("Parallelism value is incorrect!")
     }
 
-    if (runType == RunType.DURATION && urlList.values.any { it.durationValue == 0L }) {
+    if (testCase.executionMode == ExecutionMode.PARALLEL && testCase.parallelism == 0) {
+        errors.add("Parallelism doesn't set!")
+    }
+
+    if (testCase.runType == RunType.DURATION && testCase.urls.values.any { it.durationValue == 0L }) {
         errors.add(
             "Time duration doesn't set!\n" +
-                    urlList.filter { it.value.durationValue == 0L }
+                    testCase.urls.filter { it.value.durationValue == 0L }
                         .keys.joinToString(", ")
         )
     }
 
-    if (runType == RunType.COUNT && urlList.values.any { it.countValue == 0L }) {
+    if (testCase.runType == RunType.COUNT && testCase.urls.values.any { it.countValue == 0L }) {
         errors.add(
             "Requests count doesn't set!\n" +
-                    urlList.filter { it.value.countValue == 0L }
+                    testCase.urls.filter { it.value.countValue == 0L }
                         .keys.joinToString(", ")
         )
     }

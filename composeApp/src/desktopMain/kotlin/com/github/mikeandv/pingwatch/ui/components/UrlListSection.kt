@@ -82,6 +82,7 @@ private fun UrlListColumn(
             url = entry.key,
             params = entry.value,
             runType = testCase.runType,
+            settings = testCase.settings,
             timeInput = timeInput,
             countInput = countInput,
             progressFlow = if (testCase.runType == RunType.COUNT) testCase.urlProgressFlow(entry.key) else emptyFlow(),

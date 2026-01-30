@@ -3,6 +3,7 @@ package com.github.mikeandv.pingwatch.ui.handlers
 import com.github.mikeandv.pingwatch.domain.TestCase
 import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
 import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
+import com.github.mikeandv.pingwatch.ui.utils.ParallelismInputResult
 import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -172,9 +173,11 @@ fun handleIndividualTestCountChange(
     input: String,
     key: String,
     updateCount: (Long, String) -> Unit,
-    updateErrorMessage: (String?) -> Unit
+    updateErrorMessage: (String?) -> Unit,
+    fieldMinLimit: Int,
+    fieldMaxLimit: Int
 ) {
-    when (val result = processCountInput(input)) {
+    when (val result = processCountInput(input, fieldMinLimit, fieldMaxLimit)) {
         is CountInputResult.Empty -> {
             updateCount(result.value, key)
             updateErrorMessage(null)
@@ -196,9 +199,11 @@ fun handleTestCountChange(
     input: String,
     updateCountInput: (String) -> Unit,
     updateRequestCount: (Long) -> Unit,
-    updateErrorMessage: (String?) -> Unit
+    updateErrorMessage: (String?) -> Unit,
+    fieldMinLimit: Int,
+    fieldMaxLimit: Int
 ) {
-    when (val result = processCountInput(input)) {
+    when (val result = processCountInput(input, fieldMinLimit, fieldMaxLimit)) {
         is CountInputResult.Empty -> {
             updateCountInput("")
             updateRequestCount(result.value)
@@ -217,65 +222,47 @@ fun handleTestCountChange(
     }
 }
 
-fun handleIntInputChange(
-    input: String,
-    updateInput: (String) -> Unit,
-    updateErrorMessage: (String?) -> Unit,
-    processInput: (String) -> IntInputResult
-) {
-    updateInput(input)
-    when (val result = processInput(input)) {
-        is IntInputResult.Valid -> updateErrorMessage(null)
-        is IntInputResult.Error -> updateErrorMessage(result.message)
-    }
-}
-
 fun handleParallelismInputChange(
     input: String,
     updateParallelismInput: (String) -> Unit,
     updateParallelism: (Int) -> Unit,
-    updateErrorMessage: (String?) -> Unit
+    updateErrorMessage: (String?) -> Unit,
+    fieldMinLimit: Int,
+    fieldMaxLimit: Int
 ) {
-    updateParallelismInput(input)
-    when (val result = processParallelismInput(input)) {
-        is IntInputResult.Valid -> {
+
+    when (val result = processParallelismInput(input, fieldMinLimit, fieldMaxLimit)) {
+        is ParallelismInputResult.Empty -> {
+            updateParallelismInput("")
             updateParallelism(result.value)
             updateErrorMessage(null)
         }
 
-        is IntInputResult.Error -> updateErrorMessage(result.message)
+        is ParallelismInputResult.Valid -> {
+            updateParallelismInput(input)
+            updateParallelism(result.value)
+            updateErrorMessage(null)
+        }
+
+        is ParallelismInputResult.Error -> {
+            updateErrorMessage(result.message)
+        }
     }
 }
 
-fun handleMaxFileSizeInputChange(
+fun handleIntInputChange(
     input: String,
-    updateMaxFileSizeInput: (String) -> Unit,
-    updateErrorMessage: (String?) -> Unit
-) = handleIntInputChange(input, updateMaxFileSizeInput, updateErrorMessage, ::processMaxFileSizeInput)
-
-fun handleMaxLinesLimitInputChange(
-    input: String,
-    updateMaxLinesLimitInput: (String) -> Unit,
-    updateErrorMessage: (String?) -> Unit
-) = handleIntInputChange(input, updateMaxLinesLimitInput, updateErrorMessage, ::processMaxLinesLimitInput)
-
-fun handleEarlyStopThresholdInputChange(
-    input: String,
-    updateEarlyStopThresholdInput: (String) -> Unit,
-    updateErrorMessage: (String?) -> Unit
-) = handleIntInputChange(input, updateEarlyStopThresholdInput, updateErrorMessage, ::processEarlyStopThresholdInput)
-
-fun handleDispatcherMaxRequestsInputChange(
-    input: String,
-    updateDispatcherMaxRequestsInput: (String) -> Unit,
-    updateErrorMessage: (String?) -> Unit
-) = handleIntInputChange(
-    input,
-    updateDispatcherMaxRequestsInput,
-    updateErrorMessage,
-    ::processDispatcherMaxRequestsInput
-)
-
+    updateInput: (String) -> Unit,
+    updateErrorMessage: (String?) -> Unit,
+    fieldMinLimit: Int,
+    fieldMaxLimit: Int
+) {
+    updateInput(input)
+    when (val result = processIntInput(input, fieldMinLimit, fieldMaxLimit)) {
+        is IntInputResult.Valid -> updateErrorMessage(null)
+        is IntInputResult.Error -> updateErrorMessage(result.message)
+    }
+}
 
 fun handleLaunchTest(
     testCase: TestCase,
@@ -288,7 +275,11 @@ fun handleLaunchTest(
     updateShowDialog: (Boolean) -> Unit,
     updateDialogMessage: (String) -> Unit
 ) {
-    val validation = validateLaunchTest(testCase.urls, testCase.runType, durationErrorMessage, parallelismError)
+    val validation = validateLaunchTest(
+        testCase,
+        durationErrorMessage,
+        parallelismError
+    )
 
     if (!validation.isValid) {
         updateDialogMessage(validation.errorMessage!!)

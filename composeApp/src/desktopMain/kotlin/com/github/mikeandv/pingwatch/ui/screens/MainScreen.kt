@@ -119,15 +119,14 @@ fun MainScreen(
                 onDurationSelected = {
                     viewModel.updateIsDuration(true)
                     viewModel.updateDurationErrorMessage(null)
-                    viewModel.updateCountInput("")
                 },
                 onCountSelected = {
                     viewModel.updateIsDuration(false)
                     viewModel.updateDurationErrorMessage(null)
-                    viewModel.updateTimeInput("")
                 },
                 countInput = countInput,
                 timeInput = timeInput,
+                durationErrorMessage = durationErrorMessage,
                 onTimeInputChange = { input ->
                     handleTimeInputChange(
                         input,
@@ -141,11 +140,14 @@ fun MainScreen(
                         input,
                         viewModel::updateCountInput,
                         viewModel::updateRequestCount,
-                        viewModel::updateDurationErrorMessage
+                        viewModel::updateDurationErrorMessage,
+                        testCase.settings.minCommonInput,
+                        testCase.settings.maxCountInput
                     )
                 },
                 progress = progress,
                 onExecutionModeChange = { mode ->
+                    viewModel.updateParallelismError(null)
                     viewModel.updateExecutionMode(mode)
                 },
                 parallelismInput = parallelismInput,
@@ -155,7 +157,9 @@ fun MainScreen(
                         input,
                         viewModel::updateParallelismInput,
                         viewModel::updateParallelism,
-                        viewModel::updateParallelismError
+                        viewModel::updateParallelismError,
+                        testCase.settings.minCommonInput,
+                        testCase.settings.maxParallelismInput
                     )
                 }
             )

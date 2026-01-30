@@ -23,6 +23,7 @@ fun ParametersSection(
     onCountSelected: () -> Unit,
     countInput: String,
     timeInput: String,
+    durationErrorMessage: String?,
     onTimeInputChange: (String) -> Unit,
     onCountInputChange: (String) -> Unit,
     progress: Long,
@@ -48,6 +49,7 @@ fun ParametersSection(
                 onCountSelected = onCountSelected,
                 countInput = countInput,
                 timeInput = timeInput,
+                durationErrorMessage = durationErrorMessage,
                 onTimeInputChange = onTimeInputChange,
                 onCountInputChange = onCountInputChange,
                 enabled = isEnabled && isNotRunning

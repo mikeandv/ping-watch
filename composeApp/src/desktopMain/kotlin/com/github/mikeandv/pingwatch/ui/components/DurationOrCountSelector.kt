@@ -20,6 +20,7 @@ fun DurationOrCountSelector(
     runType: RunType,
     onDurationSelected: () -> Unit,
     onCountSelected: () -> Unit,
+    durationErrorMessage: String?,
     timeInput: String,
     onTimeInputChange: (String) -> Unit,
     countInput: String,
@@ -51,7 +52,13 @@ fun DurationOrCountSelector(
             modifier = Modifier
                 .width(200.dp)
                 .height(36.dp)
-                .border(1.dp, if (enabled) Color.Gray else Color.LightGray, RoundedCornerShape(4.dp))
+                .border(1.dp,
+                    when {
+                        !enabled -> Color.LightGray
+                        durationErrorMessage != null -> MaterialTheme.colors.error
+                        else -> Color.Gray
+                    },
+                    RoundedCornerShape(4.dp))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             decorationBox = { innerTextField ->
                 Box(
