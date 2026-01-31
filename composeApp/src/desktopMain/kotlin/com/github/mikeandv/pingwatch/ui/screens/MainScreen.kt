@@ -1,14 +1,10 @@
 package com.github.mikeandv.pingwatch.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.ui.components.*
 import com.github.mikeandv.pingwatch.ui.handlers.*
@@ -32,9 +28,9 @@ fun MainScreen(
     val showDialog by viewModel.showDialog.collectAsState()
     val parallelismInput by viewModel.parallelismInput.collectAsState()
     val parallelismError by viewModel.parallelismError.collectAsState()
+    val individualErrorMsgMap by viewModel.individualErrorMsg.collectAsState()
 
     var url by remember { mutableStateOf("") }
-    var individualErrorMessage by remember { mutableStateOf<String?>(null) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val cancelFlag = remember { AtomicBoolean(false) }
@@ -44,27 +40,6 @@ fun MainScreen(
             modifier = Modifier.fillMaxWidth().padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            val errorMessage = urlErrorMessage ?: durationErrorMessage ?: parallelismError ?: individualErrorMessage
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(32.dp)
-                    .background(
-                        if (errorMessage != null) Color(0xFFFFD54F) else Color.Transparent,
-                        RoundedCornerShape(4.dp)
-                    ),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                errorMessage?.let { msg ->
-                    Text(
-                        text = msg,
-                        color = Color.Black,
-                        style = MaterialTheme.typography.body2,
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                }
-            }
-
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
                 FlowControlButtons(
                     testCaseState = testCase.testCaseState,
@@ -174,7 +149,8 @@ fun MainScreen(
                 updateIndividualUnformattedTime = viewModel::updateUnformattedDurationValueByKey,
                 updateIndividualIsEdit = viewModel::updateIsEditByKey,
                 onRemoveUrl = { viewModel.updateUrlList(testCase.urls.minus(it)) },
-                onIndividualErrorChange = { individualErrorMessage = it }
+                onIndividualErrorChange = viewModel::updateIndividualErrorMsg,
+                individualErrorMsgMap = individualErrorMsgMap
             )
         }
 

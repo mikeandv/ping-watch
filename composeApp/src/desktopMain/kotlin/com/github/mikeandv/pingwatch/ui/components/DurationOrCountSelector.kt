@@ -1,9 +1,9 @@
 package com.github.mikeandv.pingwatch.ui.components
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.github.mikeandv.pingwatch.domain.RunType
 
@@ -27,9 +26,7 @@ fun DurationOrCountSelector(
     onCountInputChange: (String) -> Unit,
     enabled: Boolean = true
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    Column {
         ModeSelectionRow(
             runType = runType,
             onDurationSelected = onDurationSelected,
@@ -43,38 +40,13 @@ fun DurationOrCountSelector(
             Triple(countInput, "Enter the number", onCountInputChange)
         }
 
-        BasicTextField(
-            value = value,
-            onValueChange = onChange,
-            singleLine = true,
+        CommonInputField(
+            input = value,
+            onFieldChange = onChange,
             enabled = enabled,
-            cursorBrush = SolidColor(MaterialTheme.colors.primary),
-            modifier = Modifier
-                .width(200.dp)
-                .height(36.dp)
-                .border(1.dp,
-                    when {
-                        !enabled -> Color.LightGray
-                        durationErrorMessage != null -> MaterialTheme.colors.error
-                        else -> Color.Gray
-                    },
-                    RoundedCornerShape(4.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            decorationBox = { innerTextField ->
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (value.isEmpty()) {
-                        Text(
-                            text = hint,
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.body2
-                        )
-                    }
-                    innerTextField()
-                }
-            }
+            fieldInputErrorMsg = durationErrorMessage,
+            hintTest = hint,
+            modifier = Modifier.width(200.dp)
         )
     }
 }

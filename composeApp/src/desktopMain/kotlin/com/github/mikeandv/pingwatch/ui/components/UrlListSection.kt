@@ -30,7 +30,8 @@ fun UrlListSection(
     updateIndividualUnformattedTime: (String, String) -> Unit,
     updateIndividualIsEdit: (Boolean, String) -> Unit,
     onRemoveUrl: (String) -> Unit,
-    onIndividualErrorChange: (String?) -> Unit
+    onIndividualErrorChange: (String, String?) -> Unit,
+    individualErrorMsgMap: Map<String, String?>
 ) {
     val scrollState = rememberScrollState()
 
@@ -38,10 +39,9 @@ fun UrlListSection(
         modifier = modifier
             .fillMaxWidth()
             .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
-            .padding(8.dp)
     ) {
         Column(
-            modifier = Modifier.padding(end = 24.dp).verticalScroll(scrollState)
+            modifier = Modifier.verticalScroll(scrollState)
         ) {
             UrlListColumn(
                 testCase = testCase,
@@ -52,7 +52,8 @@ fun UrlListSection(
                 updateIndividualUnformattedTime = updateIndividualUnformattedTime,
                 updateIndividualIsEdit = updateIndividualIsEdit,
                 onRemoveUrl = onRemoveUrl,
-                onIndividualErrorChange = onIndividualErrorChange
+                onIndividualErrorChange = onIndividualErrorChange,
+                individualErrorMsgMap = individualErrorMsgMap
             )
         }
         VerticalScrollbar(
@@ -72,7 +73,8 @@ private fun UrlListColumn(
     updateIndividualUnformattedTime: (String, String) -> Unit,
     updateIndividualIsEdit: (Boolean, String) -> Unit,
     onRemoveUrl: (String) -> Unit,
-    onIndividualErrorChange: (String?) -> Unit
+    onIndividualErrorChange: (String, String?) -> Unit,
+    individualErrorMsgMap: Map<String, String?>
 ) {
     val status by testCase.testCaseState.status.collectAsState()
     val isNotRunning = checkIsNotRunningStatus(status)
@@ -92,12 +94,13 @@ private fun UrlListColumn(
             updateIndividualIsEdit = updateIndividualIsEdit,
             onRemoveUrl = onRemoveUrl,
             onIndividualErrorChange = onIndividualErrorChange,
+            individualErrorMsg = individualErrorMsgMap[entry.key],
             enabled = isNotRunning
         )
 
         if (index != testCase.urls.size - 1) {
             Divider(
-                modifier = Modifier.padding(vertical = 4.dp),
+                modifier = Modifier.padding(vertical = 2.dp, horizontal = 2.dp),
                 color = Color.LightGray,
                 thickness = 1.dp
             )

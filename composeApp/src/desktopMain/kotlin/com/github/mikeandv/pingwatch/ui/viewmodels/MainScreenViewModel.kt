@@ -45,6 +45,9 @@ class MainScreenViewModel {
     private val _tags = MutableStateFlow(emptyList<Category>())
     val tags: StateFlow<List<Category>> = _tags
 
+    private val _individualErrorMsg = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val individualErrorMsg: StateFlow<Map<String, String?>> = _individualErrorMsg
+
     private val _showDialog = MutableStateFlow(false)
     val showDialog: StateFlow<Boolean> = _showDialog
 
@@ -229,6 +232,12 @@ class MainScreenViewModel {
 
     fun addTag(tag: Category) {
         _tags.value += tag
+    }
+
+    fun updateIndividualErrorMsg(url: String, newErrorMsg: String?, ) {
+        val updatedMap = _individualErrorMsg.value.toMutableMap()
+        updatedMap[url] = newErrorMsg
+        _individualErrorMsg.value = updatedMap
     }
 }
 

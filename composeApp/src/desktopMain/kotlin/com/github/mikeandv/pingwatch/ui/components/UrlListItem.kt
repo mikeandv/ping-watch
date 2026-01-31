@@ -29,14 +29,15 @@ fun UrlListItem(
     updateIndividualUnformattedTime: (String, String) -> Unit,
     updateIndividualIsEdit: (Boolean, String) -> Unit,
     onRemoveUrl: (String) -> Unit,
-    onIndividualErrorChange: (String?) -> Unit,
+    onIndividualErrorChange: (String, String?) -> Unit,
+    individualErrorMsg: String?,
     enabled: Boolean
 ) {
     var isChecked by remember { mutableStateOf(params.isEdit) }
     val progress by progressFlow.collectAsState(initial = 0)
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp).height(70.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -81,6 +82,7 @@ fun UrlListItem(
                     updateIndividualUnformattedTime = updateIndividualUnformattedTime,
                     updateIndividualCount = updateIndividualCount,
                     onErrorChange = onIndividualErrorChange,
+                    individualErrorMsg = individualErrorMsg,
                     enabled = enabled
                 )
             }
@@ -100,7 +102,7 @@ private fun syncIndividualValue(
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
     updateIndividualCount: (Long, String) -> Unit,
-    onErrorChange: (String?) -> Unit
+    onErrorChange: (String, String?) -> Unit
 ) {
     if (runType == RunType.DURATION) {
         handleIndividualTimeInputChange(

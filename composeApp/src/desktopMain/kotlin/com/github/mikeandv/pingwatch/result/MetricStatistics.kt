@@ -26,7 +26,6 @@ data class MetricStatistics(
         }
 
         private fun calculatePercentile(sortedList: List<Double>, percentile: Double): Double {
-            if (sortedList.isEmpty()) return 0.0
             if (percentile !in 0.0..100.0) return 0.0
             val index = (percentile / 100.0 * sortedList.size).toInt().coerceAtMost(sortedList.size - 1)
             return sortedList[index]

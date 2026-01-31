@@ -85,11 +85,11 @@ fun processCountInput(input: String, min: Int, max: Int): CountInputResult {
         return CountInputResult.Empty()
     }
 
-    val number = input.toLongOrNull() ?: return CountInputResult.Error("Count must be a number")
+    val number = input.toLongOrNull() ?: return CountInputResult.Error("Must be a number")
 
     return when {
-        number < min -> CountInputResult.Error("Count must be at least $min")
-        number > max -> CountInputResult.Error("Count must be at most $max")
+        number < min -> CountInputResult.Error("Must be at least $min")
+        number > max -> CountInputResult.Error("Must be at most $max")
         else -> CountInputResult.Valid(number)
     }
 }
@@ -100,11 +100,11 @@ fun processParallelismInput(input: String, min: Int, max: Int): ParallelismInput
     }
 
     val value = input.toIntOrNull()
-        ?: return ParallelismInputResult.Error("Parallelism must be a number")
+        ?: return ParallelismInputResult.Error("Must be a number")
 
     return when {
-        value < min -> ParallelismInputResult.Error("Parallelism must be at least $min")
-        value > max -> ParallelismInputResult.Error("Parallelism must be at most $max")
+        value < min -> ParallelismInputResult.Error("Must be at least $min")
+        value > max -> ParallelismInputResult.Error("Must be at most $max")
         else -> ParallelismInputResult.Valid(value)
     }
 }

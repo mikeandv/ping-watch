@@ -47,15 +47,15 @@ class TestCase(
     suspend fun runTestCase(cancelFlag: () -> Boolean) {
         when (runType) {
             RunType.DURATION -> {
-                testCaseState.startDurationTestCase()
+                testCaseState.startTestCase()
                 testCaseResult = runR(this, cancelFlag)
-                testCaseState.finishDurationTestCase()
+                testCaseState.finishTestCase()
             }
 
             RunType.COUNT -> {
-                testCaseState.startCountTestCase()
+                testCaseState.startTestCase()
                 testCaseResult = runR(this, cancelFlag)
-                testCaseState.finishCountTestCase()
+                testCaseState.finishTestCase()
             }
         }
     }

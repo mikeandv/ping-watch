@@ -36,9 +36,7 @@ fun ParametersSection(
     val isNotRunning = checkIsNotRunningStatus(status)
     val isEnabled = testCase.urls.isNotEmpty()
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically

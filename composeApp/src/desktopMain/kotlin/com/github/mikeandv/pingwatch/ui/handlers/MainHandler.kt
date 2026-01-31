@@ -110,29 +110,29 @@ fun handleIndividualTimeInputChange(
     key: String,
     updateTime: (Long, String) -> Unit,
     updateUnformattedTime: (String, String) -> Unit,
-    updateErrorMessage: (String?) -> Unit
+    updateErrorMessage: (String, String?) -> Unit
 ) {
     when (val result = processTimeInput(input)) {
         is TimeInputResult.Empty -> {
             updateTime(result.timeMillis, key)
             updateUnformattedTime(result.unformatted, key)
-            updateErrorMessage(null)
+            updateErrorMessage(key, null)
         }
 
         is TimeInputResult.Partial -> {
             updateTime(0L, key)
             updateUnformattedTime(result.unformatted, key)
-            updateErrorMessage(result.error)
+            updateErrorMessage(key, result.error)
         }
 
         is TimeInputResult.Valid -> {
             updateUnformattedTime(result.unformatted, key)
             updateTime(result.timeMillis, key)
-            updateErrorMessage(null)
+            updateErrorMessage(key, null)
         }
 
         is TimeInputResult.Error -> {
-            updateErrorMessage(result.message)
+            updateErrorMessage(key, result.message)
         }
     }
 }
@@ -173,23 +173,23 @@ fun handleIndividualTestCountChange(
     input: String,
     key: String,
     updateCount: (Long, String) -> Unit,
-    updateErrorMessage: (String?) -> Unit,
+    updateErrorMessage: (String, String?) -> Unit,
     fieldMinLimit: Int,
     fieldMaxLimit: Int
 ) {
     when (val result = processCountInput(input, fieldMinLimit, fieldMaxLimit)) {
         is CountInputResult.Empty -> {
             updateCount(result.value, key)
-            updateErrorMessage(null)
+            updateErrorMessage(key, null)
         }
 
         is CountInputResult.Valid -> {
             updateCount(result.value, key)
-            updateErrorMessage(null)
+            updateErrorMessage(key, null)
         }
 
         is CountInputResult.Error -> {
-            updateErrorMessage(result.message)
+            updateErrorMessage(key, result.message)
         }
     }
 }

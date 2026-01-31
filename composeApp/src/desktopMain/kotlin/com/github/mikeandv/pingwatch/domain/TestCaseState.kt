@@ -8,19 +8,11 @@ class TestCaseState() {
     private val _status = MutableStateFlow(StatusCode.CREATED)
     val status: StateFlow<StatusCode> get() = _status.asStateFlow()
 
-    fun startCountTestCase() {
+    fun startTestCase() {
         _status.value = StatusCode.RUNNING
     }
 
-    fun finishCountTestCase() {
-        _status.value = StatusCode.FINISHED
-    }
-
-    fun startDurationTestCase() {
-        _status.value = StatusCode.RUNNING
-    }
-
-    fun finishDurationTestCase() {
+    fun finishTestCase() {
         _status.value = StatusCode.FINISHED
     }
 
