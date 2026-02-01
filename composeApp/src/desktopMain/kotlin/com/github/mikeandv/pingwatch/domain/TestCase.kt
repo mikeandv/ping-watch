@@ -15,10 +15,11 @@ class TestCase(
     settings: TestCaseSettings,
     testCaseResult: List<TestCaseResult>? = null,
     agg: UrlAvgAggregator? = null,
-    okHttpClient: OkHttpClient? = null
+    okHttpClient: OkHttpClient? = null,
+    events: MutableSharedFlow<TestEvent>? = null
 ) {
     val agg: UrlAvgAggregator = agg ?: UrlAvgAggregator(settings.earlyStopThreshold)
-    val events = MutableSharedFlow<TestEvent>(
+    val events: MutableSharedFlow<TestEvent> = events ?: MutableSharedFlow(
         extraBufferCapacity = 256
     )
     var testCaseResult: List<TestCaseResult> = testCaseResult ?: emptyList()
@@ -93,23 +94,7 @@ class TestCase(
         }.distinctUntilChanged()
     }
 
-    fun urlProgressFlow(url: String): Flow<Int> {
-        val total = urls[url]?.countValue ?: 0
-        if (total == 0L) return emptyFlow()
-
-        return events.runningFold(0L) { completed, event ->
-            when (event) {
-                is TestEvent.RequestCompleted ->
-                    if (event.url == url) completed + 1 else completed
-
-                else -> completed
-            }
-        }.map { completed ->
-            ((completed * 100) / total).toInt()
-        }.distinctUntilChanged()
-    }
-
-    fun urlRequestCountFlow(url: String): Flow<Long> {
+    fun urlProgressFlow(url: String): Flow<Long> {
         return events.runningFold(0L) { count, event ->
             when (event) {
                 is TestEvent.RequestCompleted ->
@@ -132,7 +117,8 @@ class TestCase(
         return TestCase(
             urls, runType, executionMode, parallelism, testCaseState, settings, testCaseResult,
             agg = this.agg,
-            okHttpClient = this.okHttpClient
+            okHttpClient = this.okHttpClient,
+            events = this.events
         )
     }
 

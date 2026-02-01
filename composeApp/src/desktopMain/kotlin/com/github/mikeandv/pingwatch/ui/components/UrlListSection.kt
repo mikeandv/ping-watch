@@ -10,14 +10,13 @@ import androidx.compose.material.Divider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCase
 import com.github.mikeandv.pingwatch.utils.checkIsNotRunningStatus
-import kotlinx.coroutines.flow.emptyFlow
 
 @Composable
 fun UrlListSection(
@@ -77,9 +76,14 @@ private fun UrlListColumn(
     individualErrorMsgMap: Map<String, String?>
 ) {
     val status by testCase.testCaseState.status.collectAsState()
+    val runId by testCase.testCaseState.runId.collectAsState()
     val isNotRunning = checkIsNotRunningStatus(status)
 
     testCase.urls.entries.forEachIndexed { index, entry ->
+        val progressFlow = remember(runId, entry.key) {
+            testCase.urlProgressFlow(entry.key)
+        }
+
         UrlListItem(
             url = entry.key,
             params = entry.value,
@@ -87,8 +91,7 @@ private fun UrlListColumn(
             settings = testCase.settings,
             timeInput = timeInput,
             countInput = countInput,
-            progressFlow = if (testCase.runType == RunType.COUNT) testCase.urlProgressFlow(entry.key) else emptyFlow(),
-            countProgressFlow = if (testCase.runType == RunType.DURATION) testCase.urlRequestCountFlow(entry.key) else emptyFlow(),
+            progressFlow = progressFlow,
             updateIndividualCount = updateIndividualCount,
             updateIndividualTime = updateIndividualTime,
             updateIndividualUnformattedTime = updateIndividualUnformattedTime,
