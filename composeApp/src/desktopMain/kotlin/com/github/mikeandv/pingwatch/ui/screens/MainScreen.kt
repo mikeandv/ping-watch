@@ -11,7 +11,6 @@ import com.github.mikeandv.pingwatch.ui.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 
-//private val URL_PATTERN = Regex("^https?://(localhost|\\d{1,3}(\\.\\d{1,3}){3}|([a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,})(:\\d+)?(/\\S*)?$")
 
 @Composable
 fun MainScreen(

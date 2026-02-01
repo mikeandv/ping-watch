@@ -33,7 +33,7 @@ fun SettingsDialog(
         var dispatcherMaxRequestsPerHostInput by remember(settings) { mutableStateOf(settings.dispatcherMaxRequestsPerHost.toString()) }
         var dispatcherMaxRequestsPerHostError by remember { mutableStateOf<String?>(null) }
 
-        val availableExtensions = listOf("txt", "json", "csv")
+        val availableExtensions = listOf("txt")
         var selectedExtensions by remember(settings) { mutableStateOf(settings.allowedFileExtensions.toSet()) }
 
         AlertDialog(
@@ -214,9 +214,7 @@ private fun FileExtensionsSelector(
                             onSelectionChange(
                                 if (checked) selectedExtensions + ext else selectedExtensions - ext
                             )
-                        },
-                        //TODO remove when could handle other file extensions
-                        enabled = ext == "txt"
+                        }
                     )
                     Text(ext)
                 }

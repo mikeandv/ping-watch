@@ -41,6 +41,8 @@ kotlin {
             implementation(libs.mockito.core)
             implementation(libs.mockito.kotlin)
             implementation(libs.mockk)
+            implementation(libs.ok.http.mockwebserver)
+            implementation(libs.turbine)
 
         }
 
