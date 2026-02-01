@@ -8,6 +8,7 @@ import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
 data class TestCaseSettings(
+    val urlPattern: Regex = DEFAULT_URL_PATTERN,
     val maxFileSize: Int = DEFAULT_MAX_FILE_SIZE,
     val maxLinesLimit: Int = DEFAULT_MAX_LINE_LIMIT,
     val allowedFileExtensions: List<String> = DEFAULT_FILE_EXTENSIONS,
@@ -37,6 +38,7 @@ data class TestCaseSettings(
     }
 
     companion object {
+        val DEFAULT_URL_PATTERN = Regex("^https?://(localhost|\\d{1,3}(\\.\\d{1,3}){3}|([a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,})(:\\d+)?(/\\S*)?$")
         val DEFAULT_FILE_EXTENSIONS = listOf("txt")
         const val DEFAULT_MAX_FILE_SIZE = 5
         const val DEFAULT_MAX_LINE_LIMIT = 20

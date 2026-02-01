@@ -11,7 +11,7 @@ import com.github.mikeandv.pingwatch.ui.handlers.*
 import com.github.mikeandv.pingwatch.ui.viewmodels.MainScreenViewModel
 import java.util.concurrent.atomic.AtomicBoolean
 
-private val URL_PATTERN = Regex("^https?://([a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,}(:\\d+)?(/\\S*)?$")
+//private val URL_PATTERN = Regex("^https?://(localhost|\\d{1,3}(\\.\\d{1,3}){3}|([a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,})(:\\d+)?(/\\S*)?$")
 
 @Composable
 fun MainScreen(
@@ -68,13 +68,13 @@ fun MainScreen(
                 testCase = testCase,
                 url = url,
                 onUrlChange = { input ->
-                    handleUrlChange(input, { url = it }, viewModel::updateUrlErrorMessage, URL_PATTERN)
+                    handleUrlChange(input, { url = it }, viewModel::updateUrlErrorMessage, testCase.settings.urlPattern)
                 },
                 urlErrorMessage = urlErrorMessage,
                 onAddUrl = {
                     handleAddUrl(
                         url,
-                        URL_PATTERN,
+                        testCase.settings.urlPattern,
                         viewModel::updateUrlList,
                         { url = "" },
                         viewModel::updateUrlErrorMessage
@@ -85,7 +85,7 @@ fun MainScreen(
                         viewModel::updateUrlList,
                         viewModel::updateShowDialog,
                         viewModel::updateDialogErrorMessage,
-                        URL_PATTERN,
+                        testCase.settings.urlPattern,
                         testCase.settings.maxFileSize,
                         testCase.settings.maxLinesLimit,
                         testCase.settings.allowedFileExtensions

@@ -8,6 +8,7 @@ import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
@@ -39,6 +40,15 @@ fun UrlProgressIndicator(progress: Int) {
             strokeWidth = 3.dp
         )
     }
+}
+
+@Composable
+fun UrlCountProgress(progress: Long) {
+    Text(
+        text = progress.toString(),
+        color = Color.Gray,
+        style = MaterialTheme.typography.body2
+    )
 }
 
 @Composable

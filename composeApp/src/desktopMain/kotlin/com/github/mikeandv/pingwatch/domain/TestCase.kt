@@ -109,6 +109,17 @@ class TestCase(
         }.distinctUntilChanged()
     }
 
+    fun urlRequestCountFlow(url: String): Flow<Long> {
+        return events.runningFold(0L) { count, event ->
+            when (event) {
+                is TestEvent.RequestCompleted ->
+                    if (event.url == url) count + 1 else count
+
+                else -> count
+            }
+        }.distinctUntilChanged()
+    }
+
     fun copy(
         urls: Map<String, TestCaseParams> = this.urls,
         runType: RunType = this.runType,

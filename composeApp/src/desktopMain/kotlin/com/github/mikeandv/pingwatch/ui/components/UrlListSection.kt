@@ -41,7 +41,7 @@ fun UrlListSection(
             .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp))
     ) {
         Column(
-            modifier = Modifier.verticalScroll(scrollState)
+            modifier = Modifier.verticalScroll(scrollState).padding(horizontal = 12.dp)
         ) {
             UrlListColumn(
                 testCase = testCase,
@@ -88,6 +88,7 @@ private fun UrlListColumn(
             timeInput = timeInput,
             countInput = countInput,
             progressFlow = if (testCase.runType == RunType.COUNT) testCase.urlProgressFlow(entry.key) else emptyFlow(),
+            countProgressFlow = if (testCase.runType == RunType.DURATION) testCase.urlRequestCountFlow(entry.key) else emptyFlow(),
             updateIndividualCount = updateIndividualCount,
             updateIndividualTime = updateIndividualTime,
             updateIndividualUnformattedTime = updateIndividualUnformattedTime,

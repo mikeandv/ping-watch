@@ -24,6 +24,7 @@ fun UrlListItem(
     timeInput: String,
     countInput: String,
     progressFlow: Flow<Int>,
+    countProgressFlow: Flow<Long>,
     updateIndividualCount: (Long, String) -> Unit,
     updateIndividualTime: (Long, String) -> Unit,
     updateIndividualUnformattedTime: (String, String) -> Unit,
@@ -35,9 +36,10 @@ fun UrlListItem(
 ) {
     var isChecked by remember { mutableStateOf(params.isEdit) }
     val progress by progressFlow.collectAsState(initial = 0)
+    val countProgress by countProgressFlow.collectAsState(initial = 0L)
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp).height(70.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).height(70.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -46,8 +48,10 @@ fun UrlListItem(
 
         if (runType == RunType.COUNT) {
             UrlProgressIndicator(progress)
-            Spacer(modifier = Modifier.width(16.dp))
+        } else {
+            UrlCountProgress(countProgress)
         }
+        Spacer(modifier = Modifier.width(16.dp))
 
         Text(text = "Edit", style = MaterialTheme.typography.body2)
         Spacer(modifier = Modifier.width(8.dp))
