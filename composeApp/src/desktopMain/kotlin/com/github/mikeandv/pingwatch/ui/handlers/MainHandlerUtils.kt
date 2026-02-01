@@ -3,7 +3,9 @@ package com.github.mikeandv.pingwatch.ui.handlers
 import com.github.mikeandv.pingwatch.domain.ExecutionMode
 import com.github.mikeandv.pingwatch.domain.RunType
 import com.github.mikeandv.pingwatch.domain.TestCase
-import com.github.mikeandv.pingwatch.ui.utils.*
+import com.github.mikeandv.pingwatch.ui.utils.LaunchValidationResult
+import com.github.mikeandv.pingwatch.ui.utils.NumberInputResult
+import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 fun validateUrlsFile(
@@ -80,49 +82,41 @@ fun processTimeInput(input: String): TimeInputResult {
     )
 }
 
-fun processCountInput(input: String, min: Int, max: Int): CountInputResult {
+fun <T : Number> processNumberInput(
+    input: String,
+    min: Long,
+    max: Long,
+    emptyValue: T,
+    converter: (Long) -> T,
+    allowEmpty: Boolean = true,
+    requiredMessage: String = "Required"
+): NumberInputResult<T> {
     if (input.isEmpty()) {
-        return CountInputResult.Empty()
+        return if (allowEmpty) {
+            NumberInputResult.Empty(emptyValue)
+        } else {
+            NumberInputResult.Error(requiredMessage)
+        }
     }
 
-    val number = input.toLongOrNull() ?: return CountInputResult.Error("Must be a number")
+    val number = input.toLongOrNull()
+        ?: return NumberInputResult.Error("Must be a number")
 
     return when {
-        number < min -> CountInputResult.Error("Must be at least $min")
-        number > max -> CountInputResult.Error("Must be at most $max")
-        else -> CountInputResult.Valid(number)
+        number < min -> NumberInputResult.Error("Must be at least $min")
+        number > max -> NumberInputResult.Error("Must be at most $max")
+        else -> NumberInputResult.Valid(converter(number))
     }
 }
 
-fun processParallelismInput(input: String, min: Int, max: Int): ParallelismInputResult {
-    if (input.isEmpty()) {
-        return ParallelismInputResult.Empty()
-    }
+fun processCountInput(input: String, min: Int, max: Int): NumberInputResult<Long> =
+    processNumberInput(input, min.toLong(), max.toLong(), 0L, { it }, allowEmpty = true)
 
-    val value = input.toIntOrNull()
-        ?: return ParallelismInputResult.Error("Must be a number")
+fun processParallelismInput(input: String, min: Int, max: Int): NumberInputResult<Int> =
+    processNumberInput(input, min.toLong(), max.toLong(), 0, { it.toInt() }, allowEmpty = true)
 
-    return when {
-        value < min -> ParallelismInputResult.Error("Must be at least $min")
-        value > max -> ParallelismInputResult.Error("Must be at most $max")
-        else -> ParallelismInputResult.Valid(value)
-    }
-}
-
-fun processIntInput(input: String, min: Int, max: Int, requiredMessage: String = "Required"): IntInputResult {
-    if (input.isEmpty()) {
-        return IntInputResult.Error(requiredMessage)
-    }
-
-    val value = input.toIntOrNull()
-        ?: return IntInputResult.Error("Must be a number")
-
-    return when {
-        value < min -> IntInputResult.Error("Must be at least $min")
-        value > max -> IntInputResult.Error("Must be at most $max")
-        else -> IntInputResult.Valid(value)
-    }
-}
+fun processIntInput(input: String, min: Int, max: Int, requiredMessage: String = "Required"): NumberInputResult<Int> =
+    processNumberInput(input, min.toLong(), max.toLong(), 0, { it.toInt() }, allowEmpty = false, requiredMessage)
 
 fun validateLaunchTest(
     testCase: TestCase,

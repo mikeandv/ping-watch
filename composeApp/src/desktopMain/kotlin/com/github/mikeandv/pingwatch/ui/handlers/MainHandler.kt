@@ -1,9 +1,7 @@
 package com.github.mikeandv.pingwatch.ui.handlers
 
 import com.github.mikeandv.pingwatch.domain.TestCase
-import com.github.mikeandv.pingwatch.ui.utils.CountInputResult
-import com.github.mikeandv.pingwatch.ui.utils.IntInputResult
-import com.github.mikeandv.pingwatch.ui.utils.ParallelismInputResult
+import com.github.mikeandv.pingwatch.ui.utils.NumberInputResult
 import com.github.mikeandv.pingwatch.ui.utils.TimeInputResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -178,17 +176,17 @@ fun handleIndividualTestCountChange(
     fieldMaxLimit: Int
 ) {
     when (val result = processCountInput(input, fieldMinLimit, fieldMaxLimit)) {
-        is CountInputResult.Empty -> {
+        is NumberInputResult.Empty -> {
             updateCount(result.value, key)
             updateErrorMessage(key, null)
         }
 
-        is CountInputResult.Valid -> {
+        is NumberInputResult.Valid -> {
             updateCount(result.value, key)
             updateErrorMessage(key, null)
         }
 
-        is CountInputResult.Error -> {
+        is NumberInputResult.Error -> {
             updateErrorMessage(key, result.message)
         }
     }
@@ -204,19 +202,19 @@ fun handleTestCountChange(
     fieldMaxLimit: Int
 ) {
     when (val result = processCountInput(input, fieldMinLimit, fieldMaxLimit)) {
-        is CountInputResult.Empty -> {
+        is NumberInputResult.Empty -> {
             updateCountInput("")
             updateRequestCount(result.value)
             updateErrorMessage(null)
         }
 
-        is CountInputResult.Valid -> {
+        is NumberInputResult.Valid -> {
             updateCountInput(input)
             updateRequestCount(result.value)
             updateErrorMessage(null)
         }
 
-        is CountInputResult.Error -> {
+        is NumberInputResult.Error -> {
             updateErrorMessage(result.message)
         }
     }
@@ -232,19 +230,19 @@ fun handleParallelismInputChange(
 ) {
 
     when (val result = processParallelismInput(input, fieldMinLimit, fieldMaxLimit)) {
-        is ParallelismInputResult.Empty -> {
+        is NumberInputResult.Empty -> {
             updateParallelismInput("")
             updateParallelism(result.value)
             updateErrorMessage(null)
         }
 
-        is ParallelismInputResult.Valid -> {
+        is NumberInputResult.Valid -> {
             updateParallelismInput(input)
             updateParallelism(result.value)
             updateErrorMessage(null)
         }
 
-        is ParallelismInputResult.Error -> {
+        is NumberInputResult.Error -> {
             updateErrorMessage(result.message)
         }
     }
@@ -259,8 +257,9 @@ fun handleIntInputChange(
 ) {
     updateInput(input)
     when (val result = processIntInput(input, fieldMinLimit, fieldMaxLimit)) {
-        is IntInputResult.Valid -> updateErrorMessage(null)
-        is IntInputResult.Error -> updateErrorMessage(result.message)
+        is NumberInputResult.Valid -> updateErrorMessage(null)
+        is NumberInputResult.Error -> updateErrorMessage(result.message)
+        is NumberInputResult.Empty -> updateErrorMessage(null)
     }
 }
 
