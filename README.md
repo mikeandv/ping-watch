@@ -6,7 +6,7 @@ Duration (Amount of time for run test) or Count(Amount of request per url to be 
 
 Also, you need to add url manually item by item, or you could import uls from text file (each url must be in new line)
 
-Then you run test by clicking Launch button and wait until test completed. You could see progress in the bottom if the page.
+Then you run test by clicking Launch button and wait until test completed. You could see progress on a main screen and each individual url progress.
 
 ## How to build binary
 1. Clone git repository
@@ -16,7 +16,7 @@ Then you run test by clicking Launch button and wait until test completed. You c
     `./gradlew packageDmg`
     
     ### for Windows
-    `gradlew.bat packageExe`
+    `.\gradlew.bat packageExe`
     
     ### for Linux
    `./gradlew packageDeb`

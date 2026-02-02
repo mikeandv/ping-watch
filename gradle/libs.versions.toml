@@ -1,25 +1,18 @@
 [versions]
 androidx-lifecycle = "2.8.4"
 compose-multiplatform = "1.7.0"
-junit = "4.13.2"
 kotlin = "2.1.0"
 kotlinx-coroutines = "1.10.1"
-mockito-core = "5.4.0"
-mockito-kotlin = "5.0.0"
 mockk = "1.13.12"
 turbine = "1.1.0"
 
 ok-http = "4.12.0"
 
 [libraries]
-mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito-core" }
-mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockito-kotlin" }
-kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
-kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 ok-http = {group = "com.squareup.okhttp3", name = "okhttp", version.ref = "ok-http"}
 ok-http-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "ok-http" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }

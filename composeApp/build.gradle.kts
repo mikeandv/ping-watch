@@ -7,6 +7,7 @@ plugins {
 }
 
 kotlin {
+    jvmToolchain(21)
     jvm("desktop")
 
     sourceSets {
@@ -21,10 +22,10 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
+            implementation(libs.kotlinx.coroutines.core)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ok.http)
         }
     }
@@ -36,13 +37,10 @@ kotlin {
         commonTest.dependencies {
             implementation(kotlin("test"))
 
-            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-            implementation(compose.uiTest)
-            implementation(libs.mockito.core)
-            implementation(libs.mockito.kotlin)
             implementation(libs.mockk)
             implementation(libs.ok.http.mockwebserver)
             implementation(libs.turbine)
+            implementation(libs.kotlinx.coroutines.test)
 
         }
 
@@ -65,9 +63,3 @@ compose.desktop {
         }
     }
 }
-
-//tasks {
-//    val desktopTest by getting(Test::class) {
-//        useJUnitPlatform()
-//    }
-//}

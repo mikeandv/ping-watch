@@ -48,7 +48,7 @@ data class TestCaseSettings(
         const val DEFAULT_MIN_COMMON_INPUT =1
         const val DEFAULT_MAX_COUNT_INPUT = 10000
         const val DEFAULT_MAX_PARALLELISM_INPUT = 64
-        const val DEFAULT_MAX_FILE_SIZE_INPUT = 100
+        const val DEFAULT_MAX_FILE_SIZE_INPUT = 10
         const val DEFAULT_MAX_LINE_LIMIT_INPUT = 1000
         const val DEFAULT_MAX_EARLY_STOP_THRESHOLD_INPUT = 100
         const val DEFAULT_MAX_DISPATCHER_REQUESTS_INPUT = 256
